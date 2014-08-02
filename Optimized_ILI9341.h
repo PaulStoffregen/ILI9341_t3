@@ -13,8 +13,8 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
-#ifndef _ADAFRUIT_ILI9341H_
-#define _ADAFRUIT_ILI9341H_
+#ifndef _Optimized_ILI9341H_
+#define _Optimized_ILI9341H_
 
 #if ARDUINO >= 100
  #include "Arduino.h"
@@ -107,13 +107,13 @@
 #define ILI9341_WHITE   0xFFFF
 
 
-class Adafruit_ILI9341 : public Adafruit_GFX {
+class Optimized_ILI9341 : public Adafruit_GFX {
 
  public:
 
-  Adafruit_ILI9341(int8_t _CS, int8_t _DC, int8_t _MOSI, int8_t _SCLK,
+  Optimized_ILI9341(int8_t _CS, int8_t _DC, int8_t _MOSI, int8_t _SCLK,
 		   int8_t _RST, int8_t _MISO);
-  Adafruit_ILI9341(int8_t _CS, int8_t _DC, int8_t _RST = -1, boolean _FSPILIB=false);
+  Optimized_ILI9341(int8_t _CS, int8_t _DC, int8_t _RST = -1, boolean _FSPILIB=false);
 
   void     begin(void),
            setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1),

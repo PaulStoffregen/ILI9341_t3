@@ -13,7 +13,7 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
-#include "Adafruit_ILI9341.h"
+#include "Optimized_ILI9341.h"
 #include <avr/pgmspace.h>
 #include <limits.h>
 #include "pins_arduino.h"
@@ -37,7 +37,7 @@
 #endif
 
 // Constructor when using software SPI.  All output pins are configurable.
-Adafruit_ILI9341::Adafruit_ILI9341(int8_t cs, int8_t dc, int8_t mosi,
+Optimized_ILI9341::Optimized_ILI9341(int8_t cs, int8_t dc, int8_t mosi,
 				   int8_t sclk, int8_t rst, int8_t miso) : Adafruit_GFX(ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT) {
   _cs   = cs;
   _dc   = dc;
@@ -56,7 +56,7 @@ Adafruit_ILI9341::Adafruit_ILI9341(int8_t cs, int8_t dc, int8_t mosi,
 
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
-Adafruit_ILI9341::Adafruit_ILI9341(int8_t cs, int8_t dc, int8_t rst, boolean FSPILIB) : Adafruit_GFX(ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT) {
+Optimized_ILI9341::Optimized_ILI9341(int8_t cs, int8_t dc, int8_t rst, boolean FSPILIB) : Adafruit_GFX(ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT) {
   _cs   = cs;
   _dc   = dc;
   _rst  = rst;
@@ -66,9 +66,9 @@ Adafruit_ILI9341::Adafruit_ILI9341(int8_t cs, int8_t dc, int8_t rst, boolean FSP
 }
 
 #if !defined(__arm__) || !defined(CORE_TEENSY)
-void Adafruit_ILI9341::writebegin(void) {
+void Optimized_ILI9341::writebegin(void) {
 }
-void Adafruit_ILI9341::spiwrite(uint8_t c) {
+void Optimized_ILI9341::spiwrite(uint8_t c) {
 
   //Serial.print("0x"); Serial.print(c, HEX); Serial.print(", ");
 
@@ -109,7 +109,7 @@ void Adafruit_ILI9341::spiwrite(uint8_t c) {
 }
 
 
-void Adafruit_ILI9341::writecommand(uint8_t c) {
+void Optimized_ILI9341::writecommand(uint8_t c) {
   CLEAR_BIT(dcport, dcpinmask);
   //digitalWrite(_dc, LOW);
   CLEAR_BIT(clkport, clkpinmask);
@@ -124,7 +124,7 @@ void Adafruit_ILI9341::writecommand(uint8_t c) {
 }
 
 
-void Adafruit_ILI9341::writedata(uint8_t c) {
+void Optimized_ILI9341::writedata(uint8_t c) {
   SET_BIT(dcport, dcpinmask);
   //digitalWrite(_dc, HIGH);
   CLEAR_BIT(clkport, clkpinmask);
@@ -138,7 +138,7 @@ void Adafruit_ILI9341::writedata(uint8_t c) {
   SET_BIT(csport, cspinmask);
 } 
 
-void Adafruit_ILI9341::writedata16(uint16_t d)
+void Optimized_ILI9341::writedata16(uint16_t d)
 {
   SET_BIT(dcport, dcpinmask);
   CLEAR_BIT(csport, cspinmask);
@@ -151,7 +151,7 @@ void Adafruit_ILI9341::writedata16(uint16_t d)
 #else
     // Teensy version...
     
-inline void Adafruit_ILI9341::spiwrite(uint8_t c)
+inline void Optimized_ILI9341::spiwrite(uint8_t c)
 {
     if (_fUseSPILib)  {
         SPI.setClockDivider(SPI_CLOCK_DIV2); // 8 MHz (full! speed!)
@@ -167,7 +167,7 @@ inline void Adafruit_ILI9341::spiwrite(uint8_t c)
     }
 }
 
-void Adafruit_ILI9341::writebegin(void) {
+void Optimized_ILI9341::writebegin(void) {
     if (_fUseSPILib) {
         SPI.setClockDivider(SPI_CLOCK_DIV2); // 8 MHz (full! speed!)
         SPI.setBitOrder(MSBFIRST);
@@ -175,7 +175,7 @@ void Adafruit_ILI9341::writebegin(void) {
     }    
 }
 
-void Adafruit_ILI9341::writecommand(uint8_t c)
+void Optimized_ILI9341::writecommand(uint8_t c)
 {
 	if (hwSPI) {
        // Serial.print("SPI CMD: ");
@@ -195,7 +195,7 @@ void Adafruit_ILI9341::writecommand(uint8_t c)
 	}
 }
 
-void Adafruit_ILI9341::writedata(uint8_t c)
+void Optimized_ILI9341::writedata(uint8_t c)
 {
 	if (hwSPI) {
         //Serial.print("SPI data: ");
@@ -215,7 +215,7 @@ void Adafruit_ILI9341::writedata(uint8_t c)
 	}
 }
 
-void Adafruit_ILI9341::writedata16(uint16_t d)
+void Optimized_ILI9341::writedata16(uint16_t d)
 {
 	if (hwSPI) {
 		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
@@ -245,7 +245,7 @@ void Adafruit_ILI9341::writedata16(uint16_t d)
 
 // Companion code to the above tables.  Reads and issues
 // a series of LCD commands stored in PROGMEM byte array.
-void Adafruit_ILI9341::commandList(uint8_t *addr) {
+void Optimized_ILI9341::commandList(uint8_t *addr) {
 
   uint8_t  numCommands, numArgs;
   uint16_t ms;
@@ -302,7 +302,7 @@ static uint8_t spi_configure_cs_pin(uint8_t pin)
 #define CTAR_6MHz    (SPI_CTAR_PBR(0) | SPI_CTAR_BR(1) | SPI_CTAR_CSSCK(1))
 #define CTAR_4MHz    (SPI_CTAR_PBR(1) | SPI_CTAR_BR(1) | SPI_CTAR_CSSCK(1))
 #ifdef LATER
-void Adafruit_ILI9341::setBitrate(uint32_t n)
+void Optimized_ILI9341::setBitrate(uint32_t n)
 {
 	if (n >= 24000000) {
 		ctar = CTAR_24MHz;
@@ -327,7 +327,7 @@ void Adafruit_ILI9341::setBitrate(uint32_t n)
 #endif
 
 
-void Adafruit_ILI9341::begin(void) {
+void Optimized_ILI9341::begin(void) {
   if (_rst > 0) {
     pinMode(_rst, OUTPUT);
     digitalWrite(_rst, LOW);
@@ -609,7 +609,7 @@ void Adafruit_ILI9341::begin(void) {
 }
 
 
-void Adafruit_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1,
+void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1,
  uint16_t y1) {
 
   writecommand(ILI9341_CASET); // Column addr set
@@ -622,12 +622,12 @@ void Adafruit_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1,
 }
 
 
-void Adafruit_ILI9341::pushColor(uint16_t color) {
+void Optimized_ILI9341::pushColor(uint16_t color) {
   writebegin();
   writedata16(color);
 }
 
-void Adafruit_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
+void Optimized_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
   if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
 
@@ -636,7 +636,7 @@ void Adafruit_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
 }
 
 
-void Adafruit_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h,
+void Optimized_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h,
  uint16_t color) {
 
   // Rudimentary clipping
@@ -649,7 +649,7 @@ void Adafruit_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h,
 }
 
 
-void Adafruit_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w,
+void Optimized_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w,
   uint16_t color) {
 
   // Rudimentary clipping
@@ -661,12 +661,12 @@ void Adafruit_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w,
   }
 }
 
-void Adafruit_ILI9341::fillScreen(uint16_t color) {
+void Optimized_ILI9341::fillScreen(uint16_t color) {
   fillRect(0, 0,  _width, _height, color);
 }
 
 // fill a rectangle
-void Adafruit_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
+void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
   uint16_t color) {
 
   // rudimentary clipping (drawChar w/big text requires this)
@@ -684,7 +684,7 @@ void Adafruit_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
 
 
 // Pass 8-bit (each) R,G,B, get back 16-bit packed color
-uint16_t Adafruit_ILI9341::color565(uint8_t r, uint8_t g, uint8_t b) {
+uint16_t Optimized_ILI9341::color565(uint8_t r, uint8_t g, uint8_t b) {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
@@ -697,7 +697,7 @@ uint16_t Adafruit_ILI9341::color565(uint8_t r, uint8_t g, uint8_t b) {
 #define MADCTL_BGR 0x08
 #define MADCTL_MH  0x04
 
-void Adafruit_ILI9341::setRotation(uint8_t m) {
+void Optimized_ILI9341::setRotation(uint8_t m) {
 
   writecommand(ILI9341_MADCTL);
   rotation = m % 4; // can't be higher than 3
@@ -726,7 +726,7 @@ void Adafruit_ILI9341::setRotation(uint8_t m) {
 }
 
 
-void Adafruit_ILI9341::invertDisplay(boolean i) {
+void Optimized_ILI9341::invertDisplay(boolean i) {
   writecommand(i ? ILI9341_INVON : ILI9341_INVOFF);
 }
 
@@ -736,7 +736,7 @@ void Adafruit_ILI9341::invertDisplay(boolean i) {
 
 #if defined(__arm__) && defined(CORE_TEENSY)
 // Teensy version
-uint8_t Adafruit_ILI9341::spiread(void) {
+uint8_t Optimized_ILI9341::spiread(void) {
   uint8_t r = 0;
 
   if (_fUseSPILib) {
@@ -759,7 +759,7 @@ uint8_t Adafruit_ILI9341::spiread(void) {
   return r;
 }
 
-uint8_t Adafruit_ILI9341::readdata(void) {
+uint8_t Optimized_ILI9341::readdata(void) {
   uint8_t r;
   if (hwSPI) {
        // Try to work directly with SPI registers...
@@ -788,7 +788,7 @@ uint8_t Adafruit_ILI9341::readdata(void) {
 }
 
 #else // Not Teensy
-uint8_t Adafruit_ILI9341::spiread(void) {
+uint8_t Optimized_ILI9341::spiread(void) {
   uint8_t r = 0;
 
   if (hwSPI) {
@@ -825,7 +825,7 @@ uint8_t Adafruit_ILI9341::spiread(void) {
   return r;
 }
 
-uint8_t Adafruit_ILI9341::readdata(void) {
+uint8_t Optimized_ILI9341::readdata(void) {
    digitalWrite(_dc, HIGH);
    digitalWrite(_cs, LOW);
    uint8_t r = spiread();
@@ -837,7 +837,7 @@ uint8_t Adafruit_ILI9341::readdata(void) {
  
  
 
-uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
+uint8_t Optimized_ILI9341::readcommand8(uint8_t c, uint8_t index) {
 #if defined(__arm__) && defined(CORE_TEENSY)
   if (hwSPI) {
     uint16_t wTimeout = 0xffff;
@@ -912,7 +912,7 @@ uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
  
 /*
 
- uint16_t Adafruit_ILI9341::readcommand16(uint8_t c) {
+ uint16_t Optimized_ILI9341::readcommand16(uint8_t c) {
  digitalWrite(_dc, LOW);
  if (_cs)
  digitalWrite(_cs, LOW);
@@ -929,7 +929,7 @@ uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
  return r;
  }
  
- uint32_t Adafruit_ILI9341::readcommand32(uint8_t c) {
+ uint32_t Optimized_ILI9341::readcommand32(uint8_t c) {
  digitalWrite(_dc, LOW);
  if (_cs)
  digitalWrite(_cs, LOW);
@@ -955,7 +955,7 @@ uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
  
  */
 // KJE Added functions to read pixel data...
-uint16_t Adafruit_ILI9341::readPixel(int16_t x, int16_t y) {
+uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y) {
   writecommand(ILI9341_CASET); // Column addr set
   writedata(x >> 8);
   writedata(x & 0xFF);     // XSTART 

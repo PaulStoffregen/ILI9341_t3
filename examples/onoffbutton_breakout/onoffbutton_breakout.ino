@@ -6,7 +6,7 @@
 #include <Adafruit_GFX.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_ILI9341.h>
+#include <Optimized_ILI9341.h>
 #include <TouchScreen.h>
 
 //Touchscreen X+ X- Y+ Y- pins
@@ -33,7 +33,7 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define TFT_CS 10
 #define TFT_DC  9
 #define TFT_RST 8
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 boolean RecordOn = false;
 

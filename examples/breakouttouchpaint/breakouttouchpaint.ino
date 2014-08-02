@@ -17,7 +17,7 @@
 
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <SPI.h>
-#include <Adafruit_ILI9341.h>
+#include <Optimized_ILI9341.h>
 #include "TouchScreen.h"
 
 // These are the four touchscreen analog pins
@@ -39,7 +39,7 @@
 #define TFT_CS 10
 #define TFT_DC  9
 #define TFT_RST 8
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 // For better pressure precision, we need to know the resistance
 // between X+ and X- Use any multimeter to read it

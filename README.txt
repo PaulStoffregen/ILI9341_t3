@@ -1,3 +1,9 @@
+Discussion regarding this optimized version:
+
+http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9341-%28320x240-TFT-color-display%29-library
+
+------------------------------------------
+
 This is a library for the Adafruit ILI9341 display products
 
 This library works with the Adafruit 2.8" Touch Shield V2 (SPI)

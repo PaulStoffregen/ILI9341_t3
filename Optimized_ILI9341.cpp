@@ -19,6 +19,8 @@
 #include "Optimized_ILI9341.h"
 #include <SPI.h>
 
+// Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
+// At all other speeds, SPI.beginTransaction() will use the fastest available clock
 #define SPICLOCK 30000000
 
 #define WIDTH  ILI9341_TFTWIDTH
@@ -27,60 +29,19 @@
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
 Optimized_ILI9341::Optimized_ILI9341(uint8_t cs, uint8_t dc, uint8_t rst)
-// : Adafruit_GFX(ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT)
 {
-  _width    = WIDTH;
-  _height   = HEIGHT;
-  rotation  = 0;
-  cursor_y  = cursor_x    = 0;
-  textsize  = 1;
-  textcolor = textbgcolor = 0xFFFF;
-  wrap      = true;
-  _cs   = cs;
-  _dc   = dc;
-  _rst  = rst;
+	_cs   = cs;
+	_dc   = dc;
+	_rst  = rst;
+	_width    = WIDTH;
+	_height   = HEIGHT;
+	rotation  = 0;
+	cursor_y  = cursor_x    = 0;
+	textsize  = 1;
+	textcolor = textbgcolor = 0xFFFF;
+	wrap      = true;
 }
 
-    
-void Optimized_ILI9341::writecommand_cont(uint8_t c)
-{
-	SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
-	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-}
-
-void Optimized_ILI9341::writecommand_last(uint8_t c)
-{
-	SPI0_SR = SPI_SR_TCF;
-	SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
-	while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
-}
-
-void Optimized_ILI9341::writedata8_cont(uint8_t c)
-{
-	SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
-	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-}
-
-void Optimized_ILI9341::writedata8_last(uint8_t c)
-{
-	SPI0_SR = SPI_SR_TCF;
-	SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
-	while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
-}
-
-void Optimized_ILI9341::writedata16_cont(uint16_t d)
-{
-	SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
-	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-}
-
-void Optimized_ILI9341::writedata16_last(uint16_t d)
-{
-	SPI0_SR = SPI_SR_TCF;
-	SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
-	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-	while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
-}
 
 
 void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -328,41 +289,30 @@ uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y) {
 
 }
 
-
-
-// Rather than a bazillion writecommand() and writedata() calls, screen
-// initialization commands and arguments are organized in these tables
-// stored in PROGMEM.  The table may look bulky, but that's mostly the
-// formatting -- storage-wise this is hundreds of bytes more compact
-// than the equivalent code.  Companion function follows.
-#define DELAY 0x80
-
-
-// Companion code to the above tables.  Reads and issues
-// a series of LCD commands stored in PROGMEM byte array.
-void Optimized_ILI9341::commandList(uint8_t *addr) {
-
-  uint8_t  numCommands, numArgs;
-  uint16_t ms;
-
-  numCommands = pgm_read_byte(addr++);   // Number of commands to follow
-  while(numCommands--) {                 // For each command...
-    writecommand_last(pgm_read_byte(addr++)); //   Read, issue command
-    numArgs  = pgm_read_byte(addr++);    //   Number of args to follow
-    ms       = numArgs & DELAY;          //   If hibit set, delay follows args
-    numArgs &= ~DELAY;                   //   Mask out delay bit
-    while(numArgs--) {                   //   For each argument...
-      writedata8_last(pgm_read_byte(addr++));  //     Read, issue argument
-    }
-
-    if(ms) {
-      ms = pgm_read_byte(addr++); // Read post-command delay time (ms)
-      if(ms == 255) ms = 500;     // If 255, delay for 500 ms
-      delay(ms);
-    }
-  }
-}
-
+static const uint8_t init_commands[] = {
+	4, 0xEF, 0x03, 0x80, 0x02,
+	4, 0xCF, 0x00, 0XC1, 0X30,
+	5, 0xED, 0x64, 0x03, 0X12, 0X81,
+	4, 0xE8, 0x85, 0x00, 0x78,
+	6, 0xCB, 0x39, 0x2C, 0x00, 0x34, 0x02,
+	2, 0xF7, 0x20,
+	3, 0xEA, 0x00, 0x00,
+	2, ILI9341_PWCTR1, 0x23, // Power control
+	2, ILI9341_PWCTR2, 0x10, // Power control
+	3, ILI9341_VMCTR1, 0x3e, 0x28, // VCM control
+	2, ILI9341_VMCTR2, 0x86, // VCM control2
+	2, ILI9341_MADCTL, 0x48, // Memory Access Control
+	2, ILI9341_PIXFMT, 0x55,
+	3, ILI9341_FRMCTR1, 0x00, 0x18,
+	4, ILI9341_DFUNCTR, 0x08, 0x82, 0x27, // Display Function Control
+	2, 0xF2, 0x00, // Gamma Function Disable
+	2, ILI9341_GAMMASET, 0x01, // Gamma curve selected
+	16, ILI9341_GMCTRP1, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08,
+		0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00, // Set Gamma
+	16, ILI9341_GMCTRN1, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07,
+		0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F, // Set Gamma
+	0
+};
 
 void Optimized_ILI9341::begin(void)
 {
@@ -375,10 +325,6 @@ void Optimized_ILI9341::begin(void)
 		pcs_command = 0;
 		return;
 	}
-	// TODO: use transactions on all access to SPI
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	SPI.endTransaction();
-
 	// toggle RST low to reset
 	if (_rst < 255) {
 		pinMode(_rst, OUTPUT);
@@ -389,128 +335,35 @@ void Optimized_ILI9341::begin(void)
 		digitalWrite(_rst, HIGH);
 		delay(150);
 	}
+	/*
+	uint8_t x = readcommand8(ILI9341_RDMODE);
+	Serial.print("\nDisplay Power Mode: 0x"); Serial.println(x, HEX);
+	x = readcommand8(ILI9341_RDMADCTL);
+	Serial.print("\nMADCTL Mode: 0x"); Serial.println(x, HEX);
+	x = readcommand8(ILI9341_RDPIXFMT);
+	Serial.print("\nPixel Format: 0x"); Serial.println(x, HEX);
+	x = readcommand8(ILI9341_RDIMGFMT);
+	Serial.print("\nImage Format: 0x"); Serial.println(x, HEX);
+	x = readcommand8(ILI9341_RDSELFDIAG);
+	Serial.print("\nSelf Diagnostic: 0x"); Serial.println(x, HEX);
+	*/
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	const uint8_t *addr = init_commands;
+	while (1) {
+		uint8_t count = *addr++;
+		if (count-- == 0) break;
+		writecommand_cont(*addr++);
+		while (count-- > 0) {
+			writedata8_cont(*addr++);
+		}
+	}
+	writecommand_last(ILI9341_SLPOUT);    // Exit Sleep
+	SPI.endTransaction();
 
-  /*
-  uint8_t x = readcommand8(ILI9341_RDMODE);
-  Serial.print("\nDisplay Power Mode: 0x"); Serial.println(x, HEX);
-  x = readcommand8(ILI9341_RDMADCTL);
-  Serial.print("\nMADCTL Mode: 0x"); Serial.println(x, HEX);
-  x = readcommand8(ILI9341_RDPIXFMT);
-  Serial.print("\nPixel Format: 0x"); Serial.println(x, HEX);
-  x = readcommand8(ILI9341_RDIMGFMT);
-  Serial.print("\nImage Format: 0x"); Serial.println(x, HEX);
-  x = readcommand8(ILI9341_RDSELFDIAG);
-  Serial.print("\nSelf Diagnostic: 0x"); Serial.println(x, HEX);
-*/
-  //if(cmdList) commandList(cmdList);
-  
-  writecommand_cont(0xEF);
-  writedata8_cont(0x03);
-  writedata8_cont(0x80);
-  writedata8_cont(0x02);
-
-  writecommand_cont(0xCF);  
-  writedata8_cont(0x00); 
-  writedata8_cont(0XC1); 
-  writedata8_cont(0X30); 
-
-  writecommand_cont(0xED);  
-  writedata8_cont(0x64); 
-  writedata8_cont(0x03); 
-  writedata8_cont(0X12); 
-  writedata8_cont(0X81); 
- 
-  writecommand_cont(0xE8);  
-  writedata8_cont(0x85); 
-  writedata8_cont(0x00); 
-  writedata8_cont(0x78); 
-
-  writecommand_cont(0xCB);  
-  writedata8_cont(0x39); 
-  writedata8_cont(0x2C); 
-  writedata8_cont(0x00); 
-  writedata8_cont(0x34); 
-  writedata8_cont(0x02); 
- 
-  writecommand_cont(0xF7);  
-  writedata8_cont(0x20); 
-
-  writecommand_cont(0xEA);  
-  writedata8_cont(0x00); 
-  writedata8_cont(0x00); 
- 
-  writecommand_cont(ILI9341_PWCTR1);    //Power control 
-  writedata8_cont(0x23);   //VRH[5:0] 
- 
-  writecommand_cont(ILI9341_PWCTR2);    //Power control 
-  writedata8_cont(0x10);   //SAP[2:0];BT[3:0] 
- 
-  writecommand_cont(ILI9341_VMCTR1);    //VCM control 
-  writedata8_cont(0x3e); //对比度调节
-  writedata8_cont(0x28); 
-  
-  writecommand_cont(ILI9341_VMCTR2);    //VCM control2 
-  writedata8_cont(0x86);  //--
- 
-  writecommand_cont(ILI9341_MADCTL);    // Memory Access Control 
-  writedata8_cont(0x48);
-
-  writecommand_cont(ILI9341_PIXFMT);    
-  writedata8_cont(0x55); 
-  
-  writecommand_cont(ILI9341_FRMCTR1);    
-  writedata8_cont(0x00);  
-  writedata8_cont(0x18); 
- 
-  writecommand_cont(ILI9341_DFUNCTR);    // Display Function Control 
-  writedata8_cont(0x08); 
-  writedata8_cont(0x82);
-  writedata8_cont(0x27);  
- 
-  writecommand_cont(0xF2);    // 3Gamma Function Disable 
-  writedata8_cont(0x00); 
- 
-  writecommand_cont(ILI9341_GAMMASET);    //Gamma curve selected 
-  writedata8_cont(0x01); 
- 
-  writecommand_cont(ILI9341_GMCTRP1);    //Set Gamma 
-  writedata8_cont(0x0F); 
-  writedata8_cont(0x31); 
-  writedata8_cont(0x2B); 
-  writedata8_cont(0x0C); 
-  writedata8_cont(0x0E); 
-  writedata8_cont(0x08); 
-  writedata8_cont(0x4E); 
-  writedata8_cont(0xF1); 
-  writedata8_cont(0x37); 
-  writedata8_cont(0x07); 
-  writedata8_cont(0x10); 
-  writedata8_cont(0x03); 
-  writedata8_cont(0x0E); 
-  writedata8_cont(0x09); 
-  writedata8_cont(0x00); 
-  
-  writecommand_cont(ILI9341_GMCTRN1);    //Set Gamma 
-  writedata8_cont(0x00); 
-  writedata8_cont(0x0E); 
-  writedata8_cont(0x14); 
-  writedata8_cont(0x03); 
-  writedata8_cont(0x11); 
-  writedata8_cont(0x07); 
-  writedata8_cont(0x31); 
-  writedata8_cont(0xC1); 
-  writedata8_cont(0x48); 
-  writedata8_cont(0x08); 
-  writedata8_cont(0x0F); 
-  writedata8_cont(0x0C); 
-  writedata8_cont(0x31); 
-  writedata8_cont(0x36); 
-  writedata8_cont(0x0F); 
-
-  writecommand_last(ILI9341_SLPOUT);    //Exit Sleep 
-  delay(120); 		
-  writecommand_last(ILI9341_DISPON);    //Display on 
-
+	delay(120); 		
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	writecommand_last(ILI9341_DISPON);    // Display on
+	SPI.endTransaction();
 }
 
 

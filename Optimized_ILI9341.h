@@ -97,7 +97,6 @@ class Optimized_ILI9341 : public Print
   public:
 	Optimized_ILI9341(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
 	void begin(void);
-	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 	void pushColor(uint16_t color);
 	void fillScreen(uint16_t color);
 	void drawPixel(int16_t x, int16_t y, uint16_t color);
@@ -117,14 +116,7 @@ class Optimized_ILI9341 : public Print
 	// KJE Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
 
-	void writecommand_cont(uint8_t c) __attribute__((always_inline));
-	void writedata8_cont(uint8_t d) __attribute__((always_inline));
-	void writedata16_cont(uint16_t d) __attribute__((always_inline));
-	void writecommand_last(uint8_t c) __attribute__((always_inline));
-	void writedata8_last(uint8_t d) __attribute__((always_inline));
-	void writedata16_last(uint16_t d) __attribute__((always_inline));
 
-	void commandList(uint8_t *addr);
 	uint8_t spiread(void);
 
 	// from Adafruit_GFX.h
@@ -167,6 +159,35 @@ class Optimized_ILI9341 : public Print
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
+
+	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+	void writecommand_cont(uint8_t c) __attribute__((always_inline)) {
+		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	}
+	void writedata8_cont(uint8_t c) __attribute__((always_inline)) {
+		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	}
+	void writedata16_cont(uint16_t d) __attribute__((always_inline)) {
+		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
+		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	}
+	void writecommand_last(uint8_t c) __attribute__((always_inline)) {
+		SPI0_SR = SPI_SR_TCF;
+		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
+		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
+	}
+	void writedata8_last(uint8_t c) __attribute__((always_inline)) {
+		SPI0_SR = SPI_SR_TCF;
+		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
+		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
+	}
+	void writedata16_last(uint16_t d) __attribute__((always_inline)) {
+		SPI0_SR = SPI_SR_TCF;
+		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
+		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
+	}
 };
 
 #ifndef swap

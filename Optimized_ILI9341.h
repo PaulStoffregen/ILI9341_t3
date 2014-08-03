@@ -20,8 +20,6 @@
 #define _Optimized_ILI9341H_
 
 #include "Arduino.h"
-#include <Adafruit_GFX.h>
-
 
 #define ILI9341_TFTWIDTH  240
 #define ILI9341_TFTHEIGHT 320
@@ -94,7 +92,7 @@
 #define ILI9341_WHITE   0xFFFF
 
 
-class Optimized_ILI9341 : public Adafruit_GFX
+class Optimized_ILI9341 : public Print
 {
   public:
 	Optimized_ILI9341(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
@@ -127,10 +125,50 @@ class Optimized_ILI9341 : public Adafruit_GFX
 	void commandList(uint8_t *addr);
 	uint8_t spiread(void);
 
+	// from Adafruit_GFX.h
+	void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
+	void drawCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, uint16_t color);
+	void fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
+	void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, uint16_t color);
+	void drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
+	void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
+	void drawRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
+	void fillRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
+	void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color);
+	void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
+	void setCursor(int16_t x, int16_t y);
+	void setTextColor(uint16_t c);
+	void setTextColor(uint16_t c, uint16_t bg);
+	void setTextSize(uint8_t s);
+	void setTextWrap(boolean w);
+	virtual size_t write(uint8_t);
+	int16_t width(void)  { return _width; }
+	int16_t height(void) { return _height; }
+	uint8_t getRotation(void);
+	void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+
+
+ protected:
+  int16_t
+    _width, _height, // Display w/h as modified by current rotation
+    cursor_x, cursor_y;
+  uint16_t
+    textcolor, textbgcolor;
+  uint8_t
+    textsize,
+    rotation;
+  boolean
+    wrap; // If set, 'wrap' text at right edge of display
+
   private:
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
 };
+
+#ifndef swap
+#define swap(a, b) { typeof(a) t = a; a = b; b = t; }
+#endif
 
 #endif

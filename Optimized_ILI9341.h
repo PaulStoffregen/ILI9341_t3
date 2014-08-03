@@ -117,11 +117,13 @@ class Optimized_ILI9341 : public Print
 	// KJE Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
 
-	void spiwrite(uint8_t);
-	void writebegin(void);
-	void writecommand(uint8_t c);
-	void writedata(uint8_t d);
-	void writedata16(uint16_t d);
+	void writecommand_cont(uint8_t c) __attribute__((always_inline));
+	void writedata8_cont(uint8_t d) __attribute__((always_inline));
+	void writedata16_cont(uint16_t d) __attribute__((always_inline));
+	void writecommand_last(uint8_t c) __attribute__((always_inline));
+	void writedata8_last(uint8_t d) __attribute__((always_inline));
+	void writedata16_last(uint16_t d) __attribute__((always_inline));
+
 	void commandList(uint8_t *addr);
 	uint8_t spiread(void);
 

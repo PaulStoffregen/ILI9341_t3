@@ -19,6 +19,8 @@
 #include "Optimized_ILI9341.h"
 #include <SPI.h>
 
+#define SPICLOCK 30000000
+
 #define WIDTH  ILI9341_TFTWIDTH
 #define HEIGHT ILI9341_TFTHEIGHT
 
@@ -40,109 +42,131 @@ Optimized_ILI9341::Optimized_ILI9341(uint8_t cs, uint8_t dc, uint8_t rst)
 }
 
     
-inline void Optimized_ILI9341::spiwrite(uint8_t c)
+void Optimized_ILI9341::writecommand_cont(uint8_t c)
 {
-	SPI.transfer(c);
+	SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
 }
 
-void Optimized_ILI9341::writebegin(void) {
-}
-
-void Optimized_ILI9341::writecommand(uint8_t c)
+void Optimized_ILI9341::writecommand_last(uint8_t c)
 {
-	// Serial.print("SPI CMD: ");
-	// Serial.print(c, HEX);
+	SPI0_SR = SPI_SR_TCF;
 	SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
-	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-        //Serial.println(" completed");
+	while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
 }
 
-void Optimized_ILI9341::writedata(uint8_t c)
+void Optimized_ILI9341::writedata8_cont(uint8_t c)
 {
-        //Serial.print("SPI data: ");
-        //Serial.print(c, HEX);
+	SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+}
+
+void Optimized_ILI9341::writedata8_last(uint8_t c)
+{
+	SPI0_SR = SPI_SR_TCF;
 	SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
-	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-        //Serial.println(" completed");
+	while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
 }
 
-void Optimized_ILI9341::writedata16(uint16_t d)
+void Optimized_ILI9341::writedata16_cont(uint16_t d)
 {
+	SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
+	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+}
+
+void Optimized_ILI9341::writedata16_last(uint16_t d)
+{
+	SPI0_SR = SPI_SR_TCF;
 	SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
 	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
 }
 
 
-void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1,
- uint16_t y1) {
-
-  writecommand(ILI9341_CASET); // Column addr set
-  writedata16(x0);   // XSTART 
-  writedata16(x1);   // XEND
-  writecommand(ILI9341_PASET); // Row addr set
-  writedata16(y0);   // YSTART
-  writedata16(y1);   // YEND
-  writecommand(ILI9341_RAMWR); // write to RAM
+void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+{
+	writecommand_cont(ILI9341_CASET); // Column addr set
+	writedata16_cont(x0);   // XSTART 
+	writedata16_cont(x1);   // XEND
+	writecommand_cont(ILI9341_PASET); // Row addr set
+	writedata16_cont(y0);   // YSTART
+	writedata16_cont(y1);   // YEND
+	writecommand_cont(ILI9341_RAMWR); // write to RAM
 }
 
 
-void Optimized_ILI9341::pushColor(uint16_t color) {
-  writebegin();
-  writedata16(color);
+
+void Optimized_ILI9341::pushColor(uint16_t color)
+{
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	writedata16_last(color);
+	SPI.endTransaction();
 }
 
 void Optimized_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
-  if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
+	if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
 
-  setAddrWindow(x,y,x+1,y+1);
-  writedata16(color);
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddrWindow(x, y, x+1, y+1);
+	writedata16_last(color);
+	SPI.endTransaction();
 }
 
 
 void Optimized_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
-  // Rudimentary clipping
-  if((x >= _width) || (y >= _height)) return;
-  if((y+h-1) >= _height) h = _height-y;
-  setAddrWindow(x, y, x, y+h-1);
-  while (h--) {
-    writedata16(color);
-  }
+	// Rudimentary clipping
+	if((x >= _width) || (y >= _height)) return;
+	if((y+h-1) >= _height) h = _height-y;
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddrWindow(x, y, x, y+h-1);
+	while (h-- > 1) {
+		writedata16_cont(color);
+	}
+	writedata16_last(color);
+	SPI.endTransaction();
 }
 
-
-void Optimized_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w,
-  uint16_t color) {
-
-  // Rudimentary clipping
-  if((x >= _width) || (y >= _height)) return;
-  if((x+w-1) >= _width)  w = _width-x;
-  setAddrWindow(x, y, x+w-1, y);
-  while (w--) {
-    writedata16(color);
-  }
+void Optimized_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
+{
+	// Rudimentary clipping
+	if((x >= _width) || (y >= _height)) return;
+	if((x+w-1) >= _width)  w = _width-x;
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddrWindow(x, y, x+w-1, y);
+	while (w-- > 1) {
+		writedata16_cont(color);
+	}
+	writedata16_last(color);
+	SPI.endTransaction();
 }
 
-void Optimized_ILI9341::fillScreen(uint16_t color) {
-  fillRect(0, 0, _width, _height, color);
+void Optimized_ILI9341::fillScreen(uint16_t color)
+{
+	fillRect(0, 0, _width, _height, color);
 }
 
 // fill a rectangle
-void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
-  uint16_t color) {
+void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+{
+	// rudimentary clipping (drawChar w/big text requires this)
+	if((x >= _width) || (y >= _height)) return;
+	if((x + w - 1) >= _width)  w = _width  - x;
+	if((y + h - 1) >= _height) h = _height - y;
 
-  // rudimentary clipping (drawChar w/big text requires this)
-  if((x >= _width) || (y >= _height)) return;
-  if((x + w - 1) >= _width)  w = _width  - x;
-  if((y + h - 1) >= _height) h = _height - y;
-
-  setAddrWindow(x, y, x+w-1, y+h-1);
-  for(y=h; y>0; y--) {
-    for(x=w; x>0; x--) {
-      writedata16(color);
-    }
-  }
+	// TODO: this can result in a very long transaction time
+	// should break this into multiple transactions, even though
+	// it'll cost more overhead, so we don't stall other SPI libs
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddrWindow(x, y, x+w-1, y+h-1);
+	for(y=h; y>0; y--) {
+		for(x=w; x>1; x--) {
+			writedata16_cont(color);
+		}
+		writedata16_last(color);
+	}
+	SPI.endTransaction();
 }
 
 
@@ -155,37 +179,38 @@ void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
 #define MADCTL_BGR 0x08
 #define MADCTL_MH  0x04
 
-void Optimized_ILI9341::setRotation(uint8_t m) {
-
-  writecommand(ILI9341_MADCTL);
-  rotation = m % 4; // can't be higher than 3
-  switch (rotation) {
-   case 0:
-     writedata(MADCTL_MX | MADCTL_BGR);
-     _width  = ILI9341_TFTWIDTH;
-     _height = ILI9341_TFTHEIGHT;
-     break;
-   case 1:
-     writedata(MADCTL_MV | MADCTL_BGR);
-     _width  = ILI9341_TFTHEIGHT;
-     _height = ILI9341_TFTWIDTH;
-     break;
-  case 2:
-    writedata(MADCTL_MY | MADCTL_BGR);
-     _width  = ILI9341_TFTWIDTH;
-     _height = ILI9341_TFTHEIGHT;
-    break;
-   case 3:
-     writedata(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
-     _width  = ILI9341_TFTHEIGHT;
-     _height = ILI9341_TFTWIDTH;
-     break;
-  }
+void Optimized_ILI9341::setRotation(uint8_t m)
+{
+	writecommand_cont(ILI9341_MADCTL);
+	rotation = m % 4; // can't be higher than 3
+	switch (rotation) {
+	case 0:
+		writedata8_last(MADCTL_MX | MADCTL_BGR);
+		_width  = ILI9341_TFTWIDTH;
+		_height = ILI9341_TFTHEIGHT;
+		break;
+	case 1:
+		writedata8_last(MADCTL_MV | MADCTL_BGR);
+		_width  = ILI9341_TFTHEIGHT;
+		_height = ILI9341_TFTWIDTH;
+		break;
+	case 2:
+		writedata8_last(MADCTL_MY | MADCTL_BGR);
+		_width  = ILI9341_TFTWIDTH;
+		_height = ILI9341_TFTHEIGHT;
+		break;
+	case 3:
+		writedata8_last(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
+		_width  = ILI9341_TFTHEIGHT;
+		_height = ILI9341_TFTWIDTH;
+		break;
+	}
 }
 
 
-void Optimized_ILI9341::invertDisplay(boolean i) {
-  writecommand(i ? ILI9341_INVON : ILI9341_INVOFF);
+void Optimized_ILI9341::invertDisplay(boolean i)
+{
+	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
 }
 
 
@@ -197,13 +222,15 @@ void Optimized_ILI9341::invertDisplay(boolean i) {
 
 
 
-uint8_t Optimized_ILI9341::spiread(void) {
+uint8_t Optimized_ILI9341::spiread(void)
+{
 	uint8_t r = 0;
 	r = SPI.transfer(0x00);
 	return r;
 }
 
-uint8_t Optimized_ILI9341::readdata(void) {
+uint8_t Optimized_ILI9341::readdata(void)
+{
   uint8_t r;
        // Try to work directly with SPI registers...
        // First wait until output queue is empty
@@ -214,7 +241,7 @@ uint8_t Optimized_ILI9341::readdata(void) {
 //		SPI0_SR = SPI_SR_TCF;
         
         // Transfer a 0 out... 
-        writedata(0);   
+        writedata8_cont(0);   
         
         // Now wait until completed. 
         wTimeout = 0xffff;
@@ -278,21 +305,17 @@ uint8_t Optimized_ILI9341::readcommand8(uint8_t c, uint8_t index)
 
 // KJE Added functions to read pixel data...
 uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y) {
-  writecommand(ILI9341_CASET); // Column addr set
-  writedata(x >> 8);
-  writedata(x & 0xFF);     // XSTART 
+  writecommand_cont(ILI9341_CASET); // Column addr set
+  writedata16_cont(x);  // XSTART
   x++;
-  writedata(x >> 8);
-  writedata(x & 0xFF);     // XEND
+  writedata16_cont(x);  // XEND
 
-  writecommand(ILI9341_PASET); // Row addr set
-  writedata(y>>8);
-  writedata(y);     // YSTART
+  writecommand_cont(ILI9341_PASET); // Row addr set
+  writedata16_cont(y);     // YSTART
   y++;
-  writedata(y>>8);
-  writedata(y);     // YEND
+  writedata16_cont(y);     // YEND
 
-  writecommand(ILI9341_RAMRD); // write to RAM
+  writecommand_cont(ILI9341_RAMRD); // write to RAM
   
   digitalWrite(_dc, HIGH);
   digitalWrite(_cs, LOW);
@@ -322,15 +345,14 @@ void Optimized_ILI9341::commandList(uint8_t *addr) {
   uint8_t  numCommands, numArgs;
   uint16_t ms;
 
-  writebegin();
   numCommands = pgm_read_byte(addr++);   // Number of commands to follow
   while(numCommands--) {                 // For each command...
-    writecommand(pgm_read_byte(addr++)); //   Read, issue command
+    writecommand_last(pgm_read_byte(addr++)); //   Read, issue command
     numArgs  = pgm_read_byte(addr++);    //   Number of args to follow
     ms       = numArgs & DELAY;          //   If hibit set, delay follows args
     numArgs &= ~DELAY;                   //   Mask out delay bit
     while(numArgs--) {                   //   For each argument...
-      writedata(pgm_read_byte(addr++));  //     Read, issue argument
+      writedata8_last(pgm_read_byte(addr++));  //     Read, issue argument
     }
 
     if(ms) {
@@ -354,7 +376,7 @@ void Optimized_ILI9341::begin(void)
 		return;
 	}
 	// TODO: use transactions on all access to SPI
-	SPI.beginTransaction(SPISettings(12000000, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	SPI.endTransaction();
 
 	// toggle RST low to reset
@@ -382,112 +404,112 @@ void Optimized_ILI9341::begin(void)
 */
   //if(cmdList) commandList(cmdList);
   
-  writecommand(0xEF);
-  writedata(0x03);
-  writedata(0x80);
-  writedata(0x02);
+  writecommand_cont(0xEF);
+  writedata8_cont(0x03);
+  writedata8_cont(0x80);
+  writedata8_cont(0x02);
 
-  writecommand(0xCF);  
-  writedata(0x00); 
-  writedata(0XC1); 
-  writedata(0X30); 
+  writecommand_cont(0xCF);  
+  writedata8_cont(0x00); 
+  writedata8_cont(0XC1); 
+  writedata8_cont(0X30); 
 
-  writecommand(0xED);  
-  writedata(0x64); 
-  writedata(0x03); 
-  writedata(0X12); 
-  writedata(0X81); 
+  writecommand_cont(0xED);  
+  writedata8_cont(0x64); 
+  writedata8_cont(0x03); 
+  writedata8_cont(0X12); 
+  writedata8_cont(0X81); 
  
-  writecommand(0xE8);  
-  writedata(0x85); 
-  writedata(0x00); 
-  writedata(0x78); 
+  writecommand_cont(0xE8);  
+  writedata8_cont(0x85); 
+  writedata8_cont(0x00); 
+  writedata8_cont(0x78); 
 
-  writecommand(0xCB);  
-  writedata(0x39); 
-  writedata(0x2C); 
-  writedata(0x00); 
-  writedata(0x34); 
-  writedata(0x02); 
+  writecommand_cont(0xCB);  
+  writedata8_cont(0x39); 
+  writedata8_cont(0x2C); 
+  writedata8_cont(0x00); 
+  writedata8_cont(0x34); 
+  writedata8_cont(0x02); 
  
-  writecommand(0xF7);  
-  writedata(0x20); 
+  writecommand_cont(0xF7);  
+  writedata8_cont(0x20); 
 
-  writecommand(0xEA);  
-  writedata(0x00); 
-  writedata(0x00); 
+  writecommand_cont(0xEA);  
+  writedata8_cont(0x00); 
+  writedata8_cont(0x00); 
  
-  writecommand(ILI9341_PWCTR1);    //Power control 
-  writedata(0x23);   //VRH[5:0] 
+  writecommand_cont(ILI9341_PWCTR1);    //Power control 
+  writedata8_cont(0x23);   //VRH[5:0] 
  
-  writecommand(ILI9341_PWCTR2);    //Power control 
-  writedata(0x10);   //SAP[2:0];BT[3:0] 
+  writecommand_cont(ILI9341_PWCTR2);    //Power control 
+  writedata8_cont(0x10);   //SAP[2:0];BT[3:0] 
  
-  writecommand(ILI9341_VMCTR1);    //VCM control 
-  writedata(0x3e); //对比度调节
-  writedata(0x28); 
+  writecommand_cont(ILI9341_VMCTR1);    //VCM control 
+  writedata8_cont(0x3e); //对比度调节
+  writedata8_cont(0x28); 
   
-  writecommand(ILI9341_VMCTR2);    //VCM control2 
-  writedata(0x86);  //--
+  writecommand_cont(ILI9341_VMCTR2);    //VCM control2 
+  writedata8_cont(0x86);  //--
  
-  writecommand(ILI9341_MADCTL);    // Memory Access Control 
-  writedata(0x48);
+  writecommand_cont(ILI9341_MADCTL);    // Memory Access Control 
+  writedata8_cont(0x48);
 
-  writecommand(ILI9341_PIXFMT);    
-  writedata(0x55); 
+  writecommand_cont(ILI9341_PIXFMT);    
+  writedata8_cont(0x55); 
   
-  writecommand(ILI9341_FRMCTR1);    
-  writedata(0x00);  
-  writedata(0x18); 
+  writecommand_cont(ILI9341_FRMCTR1);    
+  writedata8_cont(0x00);  
+  writedata8_cont(0x18); 
  
-  writecommand(ILI9341_DFUNCTR);    // Display Function Control 
-  writedata(0x08); 
-  writedata(0x82);
-  writedata(0x27);  
+  writecommand_cont(ILI9341_DFUNCTR);    // Display Function Control 
+  writedata8_cont(0x08); 
+  writedata8_cont(0x82);
+  writedata8_cont(0x27);  
  
-  writecommand(0xF2);    // 3Gamma Function Disable 
-  writedata(0x00); 
+  writecommand_cont(0xF2);    // 3Gamma Function Disable 
+  writedata8_cont(0x00); 
  
-  writecommand(ILI9341_GAMMASET);    //Gamma curve selected 
-  writedata(0x01); 
+  writecommand_cont(ILI9341_GAMMASET);    //Gamma curve selected 
+  writedata8_cont(0x01); 
  
-  writecommand(ILI9341_GMCTRP1);    //Set Gamma 
-  writedata(0x0F); 
-  writedata(0x31); 
-  writedata(0x2B); 
-  writedata(0x0C); 
-  writedata(0x0E); 
-  writedata(0x08); 
-  writedata(0x4E); 
-  writedata(0xF1); 
-  writedata(0x37); 
-  writedata(0x07); 
-  writedata(0x10); 
-  writedata(0x03); 
-  writedata(0x0E); 
-  writedata(0x09); 
-  writedata(0x00); 
+  writecommand_cont(ILI9341_GMCTRP1);    //Set Gamma 
+  writedata8_cont(0x0F); 
+  writedata8_cont(0x31); 
+  writedata8_cont(0x2B); 
+  writedata8_cont(0x0C); 
+  writedata8_cont(0x0E); 
+  writedata8_cont(0x08); 
+  writedata8_cont(0x4E); 
+  writedata8_cont(0xF1); 
+  writedata8_cont(0x37); 
+  writedata8_cont(0x07); 
+  writedata8_cont(0x10); 
+  writedata8_cont(0x03); 
+  writedata8_cont(0x0E); 
+  writedata8_cont(0x09); 
+  writedata8_cont(0x00); 
   
-  writecommand(ILI9341_GMCTRN1);    //Set Gamma 
-  writedata(0x00); 
-  writedata(0x0E); 
-  writedata(0x14); 
-  writedata(0x03); 
-  writedata(0x11); 
-  writedata(0x07); 
-  writedata(0x31); 
-  writedata(0xC1); 
-  writedata(0x48); 
-  writedata(0x08); 
-  writedata(0x0F); 
-  writedata(0x0C); 
-  writedata(0x31); 
-  writedata(0x36); 
-  writedata(0x0F); 
+  writecommand_cont(ILI9341_GMCTRN1);    //Set Gamma 
+  writedata8_cont(0x00); 
+  writedata8_cont(0x0E); 
+  writedata8_cont(0x14); 
+  writedata8_cont(0x03); 
+  writedata8_cont(0x11); 
+  writedata8_cont(0x07); 
+  writedata8_cont(0x31); 
+  writedata8_cont(0xC1); 
+  writedata8_cont(0x48); 
+  writedata8_cont(0x08); 
+  writedata8_cont(0x0F); 
+  writedata8_cont(0x0C); 
+  writedata8_cont(0x31); 
+  writedata8_cont(0x36); 
+  writedata8_cont(0x0F); 
 
-  writecommand(ILI9341_SLPOUT);    //Exit Sleep 
+  writecommand_last(ILI9341_SLPOUT);    //Exit Sleep 
   delay(120); 		
-  writecommand(ILI9341_DISPON);    //Display on 
+  writecommand_last(ILI9341_DISPON);    //Display on 
 
 }
 

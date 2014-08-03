@@ -1,3 +1,6 @@
+// https://github.com/PaulStoffregen/Optimized_ILI9341
+// http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9341-(320x240-TFT-color-display)-library
+
 /***************************************************
   This is our library for the Adafruit  ILI9341 Breakout and Shield
   ----> http://www.adafruit.com/products/1651
@@ -16,24 +19,8 @@
 #ifndef _Optimized_ILI9341H_
 #define _Optimized_ILI9341H_
 
-#if ARDUINO >= 100
- #include "Arduino.h"
- #include "Print.h"
-#else
- #include "WProgram.h"
-#endif
+#include "Arduino.h"
 #include <Adafruit_GFX.h>
-
-#if defined(__SAM3X8E__)
-#include <include/pio.h>
-  #define PROGMEM
-  #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
-  #define pgm_read_word(addr) (*(const unsigned short *)(addr))
-  typedef unsigned char prog_uchar;
-#endif
-#ifdef __AVR__
-#include <avr/pgmspace.h>
-#endif
 
 
 #define ILI9341_TFTWIDTH  240
@@ -107,77 +94,43 @@
 #define ILI9341_WHITE   0xFFFF
 
 
-class Optimized_ILI9341 : public Adafruit_GFX {
+class Optimized_ILI9341 : public Adafruit_GFX
+{
+  public:
+	Optimized_ILI9341(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
+	void begin(void);
+	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+	void pushColor(uint16_t color);
+	void fillScreen(uint16_t color);
+	void drawPixel(int16_t x, int16_t y, uint16_t color);
+	void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+	void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	void setRotation(uint8_t r);
+	void invertDisplay(boolean i);
+	// Pass 8-bit (each) R,G,B, get back 16-bit packed color
+	static uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
+		return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+	}
 
- public:
+	uint8_t readdata(void);
+	uint8_t readcommand8(uint8_t reg, uint8_t index = 0);
 
-  Optimized_ILI9341(int8_t _CS, int8_t _DC, int8_t _MOSI, int8_t _SCLK,
-		   int8_t _RST, int8_t _MISO);
-  Optimized_ILI9341(int8_t _CS, int8_t _DC, int8_t _RST = -1, boolean _FSPILIB=false);
+	// KJE Added functions to read pixel data...
+	uint16_t readPixel(int16_t x, int16_t y);
 
-  void     begin(void),
-           setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1),
-           pushColor(uint16_t color),
-           fillScreen(uint16_t color),
-           drawPixel(int16_t x, int16_t y, uint16_t color),
-           drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color),
-           drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color),
-           fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
-             uint16_t color),
-           setRotation(uint8_t r),
-           invertDisplay(boolean i);
-  uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
+	void spiwrite(uint8_t);
+	void writebegin(void);
+	void writecommand(uint8_t c);
+	void writedata(uint8_t d);
+	void writedata16(uint16_t d);
+	void commandList(uint8_t *addr);
+	uint8_t spiread(void);
 
-  /* These are not for current use, 8-bit protocol only! */
-  uint8_t  readdata(void),
-    readcommand8(uint8_t reg, uint8_t index = 0);
-  /*
-  uint16_t readcommand16(uint8_t);
-  uint32_t readcommand32(uint8_t);
-  void     dummyclock(void);
-  */  
-
-  // KJE Added functions to read pixel data...
-  uint16_t readPixel(int16_t x, int16_t y);
-  // end KJE
-
-
-  void     spiwrite(uint8_t),
-    writebegin(void),
-    writecommand(uint8_t c),
-    writedata(uint8_t d),
-    writedata16(uint16_t d),
-    commandList(uint8_t *addr);
-  uint8_t  spiread(void);
-
- private:
-  uint8_t  tabcolor;
-
-
-
-  boolean  hwSPI;
-  boolean _fUseSPILib;
-#if defined (__AVR__)
-  uint8_t mySPCR;
-  volatile uint8_t *mosiport, *clkport, *dcport, *rsport, *csport;
-  int8_t  _cs, _dc, _rst, _mosi, _miso, _sclk;
-  uint8_t  mosipinmask, clkpinmask, cspinmask, dcpinmask;
-#elif defined (__SAM3X8E__)
-    volatile RwReg *mosiport, *clkport, *dcport, *rsport, *csport;
-    uint32_t  _cs, _dc, _rst, _mosi, _miso, _sclk;
-    uint32_t  mosipinmask, clkpinmask, cspinmask, dcpinmask;
-#endif
-#if defined(__arm__) && defined(CORE_TEENSY)
-  volatile uint8_t *datapin, *clkpin, *cspin, *rspin;
-//  volatile uint8_t *mosiport, *clkport, *dcport, *rsport, *csport;
-  int8_t   _rst;
-  uint8_t  _cs, _dc, _mosi, _miso, _sclk,
-           mosipinmask, clkpinmask, cspinmask, dcpinmask;
-  uint32_t ctar;
-  uint8_t pcs_data, pcs_command;
-       
-#endif
-
+  private:
+  	uint8_t  _rst;
+  	uint8_t _cs, _dc;
+	uint8_t pcs_data, pcs_command;
 };
 
 #endif

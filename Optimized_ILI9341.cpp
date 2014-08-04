@@ -513,46 +513,91 @@ void Optimized_ILI9341::fillCircleHelper(int16_t x0, int16_t y0, int16_t r,
   }
 }
 
+
 // Bresenham's algorithm - thx wikpedia
 void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
-			    int16_t x1, int16_t y1,
-			    uint16_t color) {
-  int16_t steep = abs(y1 - y0) > abs(x1 - x0);
-  if (steep) {
-    swap(x0, y0);
-    swap(x1, y1);
-  }
+	int16_t x1, int16_t y1, uint16_t color)
+{
+	if (y0 == y1) {
+		if (x1 > x0) {
+			drawFastHLine(x0, y0, x1 - x0 + 1, color);
+		} else if (x1 < x0) {
+			drawFastHLine(x1, y0, x0 - x1 + 1, color);
+		} else {
+			drawPixel(x0, y0, color);
+		}
+		return;
+	} else if (x0 == x1) {
+		if (y1 > y0) {
+			drawFastVLine(x0, y0, y1 - y0 + 1, color);
+		} else {
+			drawFastVLine(x0, y1, y0 - y1 + 1, color);
+		}
+		return;
+	}
 
-  if (x0 > x1) {
-    swap(x0, x1);
-    swap(y0, y1);
-  }
+	bool steep = abs(y1 - y0) > abs(x1 - x0);
+	if (steep) {
+		swap(x0, y0);
+		swap(x1, y1);
+	}
+	if (x0 > x1) {
+		swap(x0, x1);
+		swap(y0, y1);
+	}
 
-  int16_t dx, dy;
-  dx = x1 - x0;
-  dy = abs(y1 - y0);
+	int16_t dx, dy;
+	dx = x1 - x0;
+	dy = abs(y1 - y0);
 
-  int16_t err = dx / 2;
-  int16_t ystep;
+	int16_t err = dx / 2;
+	int16_t ystep;
 
-  if (y0 < y1) {
-    ystep = 1;
-  } else {
-    ystep = -1;
-  }
+	if (y0 < y1) {
+		ystep = 1;
+	} else {
+		ystep = -1;
+	}
 
-  for (; x0<=x1; x0++) {
-    if (steep) {
-      drawPixel(y0, x0, color);
-    } else {
-      drawPixel(x0, y0, color);
-    }
-    err -= dy;
-    if (err < 0) {
-      y0 += ystep;
-      err += dx;
-    }
-  }
+	int16_t xbegin = x0;
+	if (steep) {
+		for (; x0<=x1; x0++) {
+			err -= dy;
+			if (err < 0) {
+				int16_t len = x0 - xbegin;
+				if (len) {
+					drawFastVLine(y0, xbegin, len + 1, color);
+				} else {
+					drawPixel(y0, x0, color);
+				}
+				xbegin = x0 + 1;
+				y0 += ystep;
+				err += dx;
+			}
+		}
+		if (x0 > xbegin + 1) {
+			drawFastVLine(y0, xbegin, x0 - xbegin, color);
+		}
+
+	} else {
+		for (; x0<=x1; x0++) {
+			err -= dy;
+			if (err < 0) {
+				int16_t len = x0 - xbegin;
+				if (len) {
+					drawFastHLine(xbegin, y0, len + 1, color);
+				} else {
+					drawPixel(x0, y0, color);
+				}
+				xbegin = x0 + 1;
+				y0 += ystep;
+				err += dx;
+			}
+		}
+		if (x0 > xbegin + 1) {
+			drawFastHLine(xbegin, y0, x0 - xbegin, color);
+		}
+	}
 }
 
 // Draw a rectangle

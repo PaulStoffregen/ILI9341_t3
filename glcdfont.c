@@ -1,16 +1,9 @@
 #ifndef FONT5X7_H
 #define FONT5X7_H
 
-#ifdef __AVR__
- #include <avr/io.h>
- #include <avr/pgmspace.h>
-#else
- #define PROGMEM
-#endif
- 
 // Standard ASCII 5x7 font
 
-static const unsigned char font[] PROGMEM = {
+static const unsigned char font[] = {
         0x00, 0x00, 0x00, 0x00, 0x00,
 	0x3E, 0x5B, 0x4F, 0x5B, 0x3E,
 	0x3E, 0x6B, 0x4F, 0x6B, 0x3E,

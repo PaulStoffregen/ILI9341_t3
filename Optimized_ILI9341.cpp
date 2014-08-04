@@ -757,14 +757,133 @@ size_t Optimized_ILI9341::write(uint8_t c) {
 
 // Draw a character
 void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
-			    uint16_t color, uint16_t bg, uint8_t size) {
+			    uint16_t fgcolor, uint16_t bgcolor, uint8_t size)
+{
+	if((x >= _width)            || // Clip right
+	   (y >= _height)           || // Clip bottom
+	   ((x + 6 * size - 1) < 0) || // Clip left  TODO: is this correct?
+	   ((y + 8 * size - 1) < 0))   // Clip top   TODO: is this correct?
+		return;
+#if 1
+	if (fgcolor == bgcolor) {
+		// This transparent approach is only about 20% faster
+		if (size == 1) {
+			uint8_t mask = 0x01;
+			int16_t xoff, yoff;
+			for (yoff=0; yoff < 7; yoff++) {
+				uint8_t line = 0;
+				for (xoff=0; xoff < 5; xoff++) {
+					if (font[c * 5 + xoff] & mask) line |= 1;
+					line <<= 1;
+				}
+				line >>= 1;
+				xoff = 0;
+				while (line) {
+					if (line == 0x1F) {
+						drawFastHLine(x + xoff, y + yoff, 5, fgcolor);
+						break;
+					} else if (line == 0x1E) {
+						drawFastHLine(x + xoff, y + yoff, 4, fgcolor);
+						break;
+					} else if ((line & 0x1C) == 0x1C) {
+						drawFastHLine(x + xoff, y + yoff, 3, fgcolor);
+						line <<= 4;
+						xoff += 4;
+					} else if ((line & 0x18) == 0x18) {
+						drawFastHLine(x + xoff, y + yoff, 2, fgcolor);
+						line <<= 3;
+						xoff += 3;
+					} else if ((line & 0x10) == 0x10) {
+						drawPixel(x + xoff, y + yoff, fgcolor);
+						line <<= 2;
+						xoff += 2;
+					} else {
+						line <<= 1;
+						xoff += 1;
+					}
+				}
+				mask = mask << 1;
+			}
+		} else {
+			uint8_t mask = 0x01;
+			int16_t xoff, yoff;
+			for (yoff=0; yoff < 7; yoff++) {
+				uint8_t line = 0;
+				for (xoff=0; xoff < 5; xoff++) {
+					if (font[c * 5 + xoff] & mask) line |= 1;
+					line <<= 1;
+				}
+				line >>= 1;
+				xoff = 0;
+				while (line) {
+					if (line == 0x1F) {
+						fillRect(x + xoff * size, y + yoff * size,
+							5 * size, size, fgcolor);
+						break;
+					} else if (line == 0x1E) {
+						fillRect(x + xoff * size, y + yoff * size,
+							4 * size, size, fgcolor);
+						break;
+					} else if ((line & 0x1C) == 0x1C) {
+						fillRect(x + xoff * size, y + yoff * size,
+							3 * size, size, fgcolor);
+						line <<= 4;
+						xoff += 4;
+					} else if ((line & 0x18) == 0x18) {
+						fillRect(x + xoff * size, y + yoff * size,
+							2 * size, size, fgcolor);
+						line <<= 3;
+						xoff += 3;
+					} else if ((line & 0x10) == 0x10) {
+						fillRect(x + xoff * size, y + yoff * size,
+							size, size, fgcolor);
+						line <<= 2;
+						xoff += 2;
+					} else {
+						line <<= 1;
+						xoff += 1;
+					}
+				}
+				mask = mask << 1;
+			}
+		}
+	} else {
+		// This solid background approach is about 5 time faster
+		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		setAddrWindow(x, y, x + 6 * size - 1, y + 8 * size);
+		uint8_t xr, yr;
+		uint8_t mask = 0x01;
+		uint16_t color;
+		for (y=0; y < 7; y++) {
+			for (yr=0; yr < size; yr++) {
+				for (x=0; x < 5; x++) {
+					if (font[c * 5 + x] & mask) {
+						color = fgcolor;
+					} else {
+						color = bgcolor;
+					}
+					for (xr=0; xr < size; xr++) {
+						writedata16_cont(color);
+					}
+				}
+				for (xr=0; xr < size; xr++) {
+					writedata16_cont(bgcolor);
+				}
+			}
+			mask = mask << 1;
+		}
+		uint32_t n = 6 * size * size;
+		do {
+			writedata16_cont(bgcolor);
+			n--;
+		} while (n > 1);
+		writedata16_last(bgcolor);
+		SPI.endTransaction();
+	}
 
-  if((x >= _width)            || // Clip right
-     (y >= _height)           || // Clip bottom
-     ((x + 6 * size - 1) < 0) || // Clip left
-     ((y + 8 * size - 1) < 0))   // Clip top
-    return;
+#endif
 
+#if 0
   for (int8_t i=0; i<6; i++ ) {
     uint8_t line;
     if (i == 5) 
@@ -774,20 +893,22 @@ void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
     for (int8_t j = 0; j<8; j++) {
       if (line & 0x1) {
         if (size == 1) // default size
-          drawPixel(x+i, y+j, color);
+          drawPixel(x+i, y+j, fgcolor);
         else {  // big size
-          fillRect(x+(i*size), y+(j*size), size, size, color);
+          fillRect(x+(i*size), y+(j*size), size, size, fgcolor);
         } 
-      } else if (bg != color) {
+      } else if (bgcolor != fgcolor) {
         if (size == 1) // default size
-          drawPixel(x+i, y+j, bg);
+          drawPixel(x+i, y+j, bgcolor);
         else {  // big size
-          fillRect(x+i*size, y+j*size, size, size, bg);
+          fillRect(x+i*size, y+j*size, size, size, bgcolor);
         }
       }
       line >>= 1;
     }
   }
+#endif
+
 }
 
 void Optimized_ILI9341::setCursor(int16_t x, int16_t y) {

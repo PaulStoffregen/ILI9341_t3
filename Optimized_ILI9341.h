@@ -177,16 +177,19 @@ class Optimized_ILI9341 : public Print
 		SPI0_SR = SPI_SR_TCF;
 		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
 		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
+		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
 	}
 	void writedata8_last(uint8_t c) __attribute__((always_inline)) {
 		SPI0_SR = SPI_SR_TCF;
 		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
 		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
+		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
 	}
 	void writedata16_last(uint16_t d) __attribute__((always_inline)) {
 		SPI0_SR = SPI_SR_TCF;
 		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
 		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
+		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
 	}
 };
 

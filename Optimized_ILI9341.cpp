@@ -42,20 +42,13 @@ Optimized_ILI9341::Optimized_ILI9341(uint8_t cs, uint8_t dc, uint8_t rst)
 	wrap      = true;
 }
 
-
-
 void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 {
-	writecommand_cont(ILI9341_CASET); // Column addr set
-	writedata16_cont(x0);   // XSTART 
-	writedata16_cont(x1);   // XEND
-	writecommand_cont(ILI9341_PASET); // Row addr set
-	writedata16_cont(y0);   // YSTART
-	writedata16_cont(y1);   // YEND
-	writecommand_cont(ILI9341_RAMWR); // write to RAM
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x0, y0, x1, y1);
+	writecommand_last(ILI9341_RAMWR); // write to RAM
+	SPI.endTransaction();
 }
-
-
 
 void Optimized_ILI9341::pushColor(uint16_t color)
 {
@@ -69,11 +62,11 @@ void Optimized_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
 	if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
 
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	setAddrWindow(x, y, x+1, y+1);
+	setAddr(x, y, x, y);
+	writecommand_cont(ILI9341_RAMWR);
 	writedata16_last(color);
 	SPI.endTransaction();
 }
-
 
 void Optimized_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
@@ -81,7 +74,8 @@ void Optimized_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t 
 	if((x >= _width) || (y >= _height)) return;
 	if((y+h-1) >= _height) h = _height-y;
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	setAddrWindow(x, y, x, y+h-1);
+	setAddr(x, y, x, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
 	while (h-- > 1) {
 		writedata16_cont(color);
 	}
@@ -95,7 +89,8 @@ void Optimized_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t 
 	if((x >= _width) || (y >= _height)) return;
 	if((x+w-1) >= _width)  w = _width-x;
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	setAddrWindow(x, y, x+w-1, y);
+	setAddr(x, y, x+w-1, y);
+	writecommand_cont(ILI9341_RAMWR);
 	while (w-- > 1) {
 		writedata16_cont(color);
 	}
@@ -120,7 +115,8 @@ void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uin
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	setAddrWindow(x, y, x+w-1, y+h-1);
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
 		for(x=w; x>1; x--) {
 			writedata16_cont(color);
@@ -850,7 +846,8 @@ void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
 	} else {
 		// This solid background approach is about 5 time faster
 		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-		setAddrWindow(x, y, x + 6 * size - 1, y + 8 * size);
+		setAddr(x, y, x + 6 * size - 1, y + 8 * size);
+		writecommand_cont(ILI9341_RAMWR);
 		uint8_t xr, yr;
 		uint8_t mask = 0x01;
 		uint16_t color;

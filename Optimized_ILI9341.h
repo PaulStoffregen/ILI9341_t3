@@ -105,6 +105,7 @@ class Optimized_ILI9341 : public Print
 	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 	void setRotation(uint8_t r);
 	void invertDisplay(boolean i);
+	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 	// Pass 8-bit (each) R,G,B, get back 16-bit packed color
 	static uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
 		return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
@@ -160,7 +161,15 @@ class Optimized_ILI9341 : public Print
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
 
-	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+	void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+	  __attribute__((always_inline)) {
+		writecommand_cont(ILI9341_CASET); // Column addr set
+		writedata16_cont(x0);   // XSTART
+		writedata16_cont(x1);   // XEND
+		writecommand_cont(ILI9341_PASET); // Row addr set
+		writedata16_cont(y0);   // YSTART
+		writedata16_cont(y1);   // YEND
+	}
 	void writecommand_cont(uint8_t c) __attribute__((always_inline)) {
 		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
 		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
@@ -190,6 +199,12 @@ class Optimized_ILI9341 : public Print
 		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
 		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
 		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
+	}
+	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)
+	  __attribute__((always_inline)) {
+		setAddr(x, y, x+w-1, y);
+		writecommand_cont(ILI9341_RAMWR);
+		do { writedata16_cont(color); } while (--w > 0);
 	}
 };
 

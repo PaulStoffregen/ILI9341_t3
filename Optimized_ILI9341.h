@@ -111,14 +111,12 @@ class Optimized_ILI9341 : public Print
 		return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 	}
 
-	uint8_t readdata(void);
+	//uint8_t readdata(void);
 	uint8_t readcommand8(uint8_t reg, uint8_t index = 0);
 
 	// KJE Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
 
-
-	uint8_t spiread(void);
 
 	// from Adafruit_GFX.h
 	void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
@@ -170,35 +168,58 @@ class Optimized_ILI9341 : public Print
 		writedata16_cont(y0);   // YSTART
 		writedata16_cont(y1);   // YEND
 	}
+	//void waitFifoNotFull(void) __attribute__((always_inline)) {
+	void waitFifoNotFull(void) {
+		uint32_t sr;
+		uint32_t tmp __attribute__((unused));
+		do {
+			sr = SPI0.SR;
+			if (sr & 0xF0) tmp = SPI0_POPR;  // drain RX FIFO
+		} while ((sr & (15 << 12)) > (3 << 12));
+	}
+	//void waitFifoEmpty(void) __attribute__((always_inline)) {
+	void waitFifoEmpty(void) {
+		uint32_t sr;
+		uint32_t tmp __attribute__((unused));
+		do {
+			sr = SPI0.SR;
+			if (sr & 0xF0) tmp = SPI0_POPR;  // drain RX FIFO
+		} while ((sr & 0xF0F0) > 0);             // wait both RX & TX empty
+	}
+	void waitTransmitComplete(void) __attribute__((always_inline)) {
+		uint32_t tmp __attribute__((unused));
+		while (!(SPI0.SR & SPI_SR_TCF)) ; // wait until final output done
+		tmp = SPI0_POPR;                  // drain the final RX FIFO word
+	}
 	void writecommand_cont(uint8_t c) __attribute__((always_inline)) {
 		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
-		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+		waitFifoNotFull();
 	}
 	void writedata8_cont(uint8_t c) __attribute__((always_inline)) {
 		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
-		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+		waitFifoNotFull();
 	}
 	void writedata16_cont(uint16_t d) __attribute__((always_inline)) {
 		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
-		while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+		waitFifoNotFull();
 	}
 	void writecommand_last(uint8_t c) __attribute__((always_inline)) {
-		SPI0_SR = SPI_SR_TCF;
+		waitFifoEmpty();
+		SPI0.SR = SPI_SR_TCF;
 		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
-		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
-		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
+		waitTransmitComplete();
 	}
 	void writedata8_last(uint8_t c) __attribute__((always_inline)) {
-		SPI0_SR = SPI_SR_TCF;
+		waitFifoEmpty();
+		SPI0.SR = SPI_SR_TCF;
 		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
-		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
-		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
+		waitTransmitComplete();
 	}
 	void writedata16_last(uint16_t d) __attribute__((always_inline)) {
-		SPI0_SR = SPI_SR_TCF;
+		waitFifoEmpty();
+		SPI0.SR = SPI_SR_TCF;
 		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
-		while (!(SPI0_SR & SPI_SR_TCF)) ; // wait until transfer complete
-		SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F) | SPI_MCR_CLR_RXF;
+		waitTransmitComplete();
 	}
 	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	  __attribute__((always_inline)) {
@@ -206,6 +227,21 @@ class Optimized_ILI9341 : public Print
 		writecommand_cont(ILI9341_RAMWR);
 		do { writedata16_cont(color); } while (--w > 0);
 	}
+	void VLine(int16_t x, int16_t y, int16_t h, uint16_t color)
+	  __attribute__((always_inline)) {
+		setAddr(x, y, x, y+h-1);
+		writecommand_cont(ILI9341_RAMWR);
+		do { writedata16_cont(color); } while (--h > 0);
+	}
+	void Pixel(int16_t x, int16_t y, uint16_t color)
+	  __attribute__((always_inline)) {
+		setAddr(x, y, x, y);
+		writecommand_cont(ILI9341_RAMWR);
+		writedata16_cont(color);
+	}
+
+
+
 };
 
 #ifndef swap

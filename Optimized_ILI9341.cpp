@@ -179,13 +179,7 @@ void Optimized_ILI9341::invertDisplay(boolean i)
 
 
 
-uint8_t Optimized_ILI9341::spiread(void)
-{
-	uint8_t r = 0;
-	r = SPI.transfer(0x00);
-	return r;
-}
-
+/*
 uint8_t Optimized_ILI9341::readdata(void)
 {
   uint8_t r;
@@ -206,13 +200,15 @@ uint8_t Optimized_ILI9341::readdata(void)
         r = SPI0.POPR;  // get the received byte... should check for it first...
     return r;
 }
- 
+ */
  
 
 uint8_t Optimized_ILI9341::readcommand8(uint8_t c, uint8_t index)
 {
     uint16_t wTimeout = 0xffff;
-    uint8_t r;
+    uint8_t r=0;
+
+    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
     while (((SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
     
     // Make sure the last frame has been sent...
@@ -256,12 +252,15 @@ uint8_t Optimized_ILI9341::readcommand8(uint8_t c, uint8_t index)
     while ((((SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
         r = SPI0.POPR;
     }
+    SPI.endTransaction();
     return r;  // get the received byte... should check for it first...
 }
 
 
 // KJE Added functions to read pixel data...
-uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y) {
+uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y)
+{
+    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   writecommand_cont(ILI9341_CASET); // Column addr set
   writedata16_cont(x);  // XSTART
   x++;
@@ -276,13 +275,12 @@ uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y) {
   
   digitalWrite(_dc, HIGH);
   digitalWrite(_cs, LOW);
-  uint16_t r = spiread();
+  uint16_t r = SPI.transfer(0x00);
   r <<= 8;
-  r |= spiread();
+  r |= SPI.transfer(0x00);
   digitalWrite(_cs, HIGH);
-   
+    SPI.endTransaction();
   return r;
-
 }
 
 static const uint8_t init_commands[] = {
@@ -399,7 +397,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "glcdfont.c"
-// #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
 
 // Draw a circle outline
 void Optimized_ILI9341::drawCircle(int16_t x0, int16_t y0, int16_t r,
@@ -555,6 +552,7 @@ void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
 		ystep = -1;
 	}
 
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	int16_t xbegin = x0;
 	if (steep) {
 		for (; x0<=x1; x0++) {
@@ -562,9 +560,9 @@ void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
 			if (err < 0) {
 				int16_t len = x0 - xbegin;
 				if (len) {
-					drawFastVLine(y0, xbegin, len + 1, color);
+					VLine(y0, xbegin, len + 1, color);
 				} else {
-					drawPixel(y0, x0, color);
+					Pixel(y0, x0, color);
 				}
 				xbegin = x0 + 1;
 				y0 += ystep;
@@ -572,7 +570,7 @@ void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
 			}
 		}
 		if (x0 > xbegin + 1) {
-			drawFastVLine(y0, xbegin, x0 - xbegin, color);
+			VLine(y0, xbegin, x0 - xbegin, color);
 		}
 
 	} else {
@@ -581,9 +579,9 @@ void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
 			if (err < 0) {
 				int16_t len = x0 - xbegin;
 				if (len) {
-					drawFastHLine(xbegin, y0, len + 1, color);
+					HLine(xbegin, y0, len + 1, color);
 				} else {
-					drawPixel(x0, y0, color);
+					Pixel(x0, y0, color);
 				}
 				xbegin = x0 + 1;
 				y0 += ystep;
@@ -591,19 +589,23 @@ void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
 			}
 		}
 		if (x0 > xbegin + 1) {
-			drawFastHLine(xbegin, y0, x0 - xbegin, color);
+			HLine(xbegin, y0, x0 - xbegin, color);
 		}
 	}
+	writecommand_last(ILI9341_NOP);
+	SPI.endTransaction();
 }
 
 // Draw a rectangle
-void Optimized_ILI9341::drawRect(int16_t x, int16_t y,
-			    int16_t w, int16_t h,
-			    uint16_t color) {
-  drawFastHLine(x, y, w, color);
-  drawFastHLine(x, y+h-1, w, color);
-  drawFastVLine(x, y, h, color);
-  drawFastVLine(x+w-1, y, h, color);
+void Optimized_ILI9341::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+{
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	HLine(x, y, w, color);
+	HLine(x, y+h-1, w, color);
+	VLine(x, y, h, color);
+	VLine(x+w-1, y, h, color);
+	writecommand_last(ILI9341_NOP);
+	SPI.endTransaction();
 }
 
 // Draw a rounded rectangle
@@ -760,7 +762,7 @@ void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
 	   ((x + 6 * size - 1) < 0) || // Clip left  TODO: is this correct?
 	   ((y + 8 * size - 1) < 0))   // Clip top   TODO: is this correct?
 		return;
-#if 1
+
 	if (fgcolor == bgcolor) {
 		// This transparent approach is only about 20% faster
 		if (size == 1) {
@@ -877,35 +879,6 @@ void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
 		writedata16_last(bgcolor);
 		SPI.endTransaction();
 	}
-
-#endif
-
-#if 0
-  for (int8_t i=0; i<6; i++ ) {
-    uint8_t line;
-    if (i == 5) 
-      line = 0x0;
-    else 
-      line = pgm_read_byte(font+(c*5)+i);
-    for (int8_t j = 0; j<8; j++) {
-      if (line & 0x1) {
-        if (size == 1) // default size
-          drawPixel(x+i, y+j, fgcolor);
-        else {  // big size
-          fillRect(x+(i*size), y+(j*size), size, size, fgcolor);
-        } 
-      } else if (bgcolor != fgcolor) {
-        if (size == 1) // default size
-          drawPixel(x+i, y+j, bgcolor);
-        else {  // big size
-          fillRect(x+i*size, y+j*size, size, size, bgcolor);
-        }
-      }
-      line >>= 1;
-    }
-  }
-#endif
-
 }
 
 void Optimized_ILI9341::setCursor(int16_t x, int16_t y) {

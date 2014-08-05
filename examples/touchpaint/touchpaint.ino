@@ -27,14 +27,13 @@
 #define TS_MAXY 4000
 
 // The STMPE610 uses hardware SPI on the shield, and #8
-#define STMPE_CS 6
+#define STMPE_CS 8
 Adafruit_STMPE610 ts = Adafruit_STMPE610(STMPE_CS);
 
 // The display also uses hardware SPI, plus #9 & #10
 #define TFT_CS 10
 #define TFT_DC  9
-#define TFT_RST 8
-Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC);
 
 // Size of the color selection boxes and the paintbrush size
 #define BOXSIZE 40

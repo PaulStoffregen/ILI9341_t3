@@ -15,12 +15,11 @@
 #define TS_MAXX 3800
 #define TS_MAXY 4000
 
-#define STMPE_CS 6
+#define STMPE_CS 8
 Adafruit_STMPE610 ts = Adafruit_STMPE610(STMPE_CS);
 #define TFT_CS 10
 #define TFT_DC  9
-#define TFT_RST 8
-Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC);
 
 boolean RecordOn = false;
 

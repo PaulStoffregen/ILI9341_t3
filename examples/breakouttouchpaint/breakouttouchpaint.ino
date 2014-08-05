@@ -38,8 +38,7 @@
 // The display uses hardware SPI, plus #9 & #10
 #define TFT_CS 10
 #define TFT_DC  9
-#define TFT_RST 8
-Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC);
 
 // For better pressure precision, we need to know the resistance
 // between X+ and X- Use any multimeter to read it

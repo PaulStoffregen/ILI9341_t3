@@ -3,10 +3,9 @@
 //
 //Thanks to Adafruit forums member Asteroid for the original sketch!
 //
-#include <Adafruit_GFX.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Optimized_ILI9341.h>
+#include <ILI9341_t3.h>
 #include <TouchScreen.h>
 
 //Touchscreen X+ X- Y+ Y- pins
@@ -32,7 +31,7 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 #define TFT_CS 10
 #define TFT_DC  9
-Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC);
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
 boolean RecordOn = false;
 

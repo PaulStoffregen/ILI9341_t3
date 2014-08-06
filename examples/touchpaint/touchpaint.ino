@@ -14,10 +14,9 @@
  ****************************************************/
 
 
-#include <Adafruit_GFX.h>    // Core graphics library
 #include <SPI.h>
 #include <Wire.h>      // this is needed even tho we aren't using it
-#include <Optimized_ILI9341.h>
+#include <ILI9341_t3.h>
 #include <Adafruit_STMPE610.h>
 
 // This is calibration data for the raw touch data to the screen coordinates
@@ -33,7 +32,7 @@ Adafruit_STMPE610 ts = Adafruit_STMPE610(STMPE_CS);
 // The display also uses hardware SPI, plus #9 & #10
 #define TFT_CS 10
 #define TFT_DC  9
-Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC);
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
 // Size of the color selection boxes and the paintbrush size
 #define BOXSIZE 40

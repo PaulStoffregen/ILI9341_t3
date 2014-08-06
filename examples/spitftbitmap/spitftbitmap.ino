@@ -14,8 +14,7 @@
  ****************************************************/
 
 
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Optimized_ILI9341.h> // Hardware-specific library
+#include <ILI9341_t3.h> // Hardware-specific library
 #include <SPI.h>
 #include <SD.h>
 
@@ -26,7 +25,7 @@
 
 #define TFT_DC  9
 #define TFT_CS 10
-Optimized_ILI9341 tft = Optimized_ILI9341(TFT_CS, TFT_DC);
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
 #define SD_CS 4
 

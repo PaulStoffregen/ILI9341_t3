@@ -1,4 +1,4 @@
-// https://github.com/PaulStoffregen/Optimized_ILI9341
+// https://github.com/PaulStoffregen/ILI9341_t3
 // http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9341-(320x240-TFT-color-display)-library
 
 /***************************************************
@@ -16,8 +16,8 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
-#ifndef _Optimized_ILI9341H_
-#define _Optimized_ILI9341H_
+#ifndef _ILI9341_t3H_
+#define _ILI9341_t3H_
 
 #include "Arduino.h"
 
@@ -88,14 +88,14 @@
 #define	ILI9341_GREEN   0x07E0
 #define ILI9341_CYAN    0x07FF
 #define ILI9341_MAGENTA 0xF81F
-#define ILI9341_YELLOW  0xFFE0  
+#define ILI9341_YELLOW  0xFFE0
 #define ILI9341_WHITE   0xFFFF
 
 
-class Optimized_ILI9341 : public Print
+class ILI9341_t3 : public Print
 {
   public:
-	Optimized_ILI9341(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
+	ILI9341_t3(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
 	void begin(void);
 	void pushColor(uint16_t color);
 	void fillScreen(uint16_t color);

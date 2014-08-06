@@ -1,4 +1,4 @@
-// https://github.com/PaulStoffregen/Optimized_ILI9341
+// https://github.com/PaulStoffregen/ILI9341_t3
 // http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9341-(320x240-TFT-color-display)-library
 
 /***************************************************
@@ -16,7 +16,7 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
-#include "Optimized_ILI9341.h"
+#include "ILI9341_t3.h"
 #include <SPI.h>
 
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
@@ -28,7 +28,7 @@
 
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
-Optimized_ILI9341::Optimized_ILI9341(uint8_t cs, uint8_t dc, uint8_t rst)
+ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst)
 {
 	_cs   = cs;
 	_dc   = dc;
@@ -42,7 +42,7 @@ Optimized_ILI9341::Optimized_ILI9341(uint8_t cs, uint8_t dc, uint8_t rst)
 	wrap      = true;
 }
 
-void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x0, y0, x1, y1);
@@ -50,14 +50,14 @@ void Optimized_ILI9341::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uin
 	SPI.endTransaction();
 }
 
-void Optimized_ILI9341::pushColor(uint16_t color)
+void ILI9341_t3::pushColor(uint16_t color)
 {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writedata16_last(color);
 	SPI.endTransaction();
 }
 
-void Optimized_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
+void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 	if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
 
@@ -68,7 +68,7 @@ void Optimized_ILI9341::drawPixel(int16_t x, int16_t y, uint16_t color) {
 	SPI.endTransaction();
 }
 
-void Optimized_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
+void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
 	// Rudimentary clipping
 	if((x >= _width) || (y >= _height)) return;
@@ -83,7 +83,7 @@ void Optimized_ILI9341::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t 
 	SPI.endTransaction();
 }
 
-void Optimized_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
+void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
 	// Rudimentary clipping
 	if((x >= _width) || (y >= _height)) return;
@@ -98,13 +98,13 @@ void Optimized_ILI9341::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t 
 	SPI.endTransaction();
 }
 
-void Optimized_ILI9341::fillScreen(uint16_t color)
+void ILI9341_t3::fillScreen(uint16_t color)
 {
 	fillRect(0, 0, _width, _height, color);
 }
 
 // fill a rectangle
-void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
 	// rudimentary clipping (drawChar w/big text requires this)
 	if((x >= _width) || (y >= _height)) return;
@@ -136,7 +136,7 @@ void Optimized_ILI9341::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uin
 #define MADCTL_BGR 0x08
 #define MADCTL_MH  0x04
 
-void Optimized_ILI9341::setRotation(uint8_t m)
+void ILI9341_t3::setRotation(uint8_t m)
 {
 	writecommand_cont(ILI9341_MADCTL);
 	rotation = m % 4; // can't be higher than 3
@@ -165,7 +165,7 @@ void Optimized_ILI9341::setRotation(uint8_t m)
 }
 
 
-void Optimized_ILI9341::invertDisplay(boolean i)
+void ILI9341_t3::invertDisplay(boolean i)
 {
 	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
 }
@@ -180,7 +180,7 @@ void Optimized_ILI9341::invertDisplay(boolean i)
 
 
 /*
-uint8_t Optimized_ILI9341::readdata(void)
+uint8_t ILI9341_t3::readdata(void)
 {
   uint8_t r;
        // Try to work directly with SPI registers...
@@ -203,7 +203,7 @@ uint8_t Optimized_ILI9341::readdata(void)
  */
  
 
-uint8_t Optimized_ILI9341::readcommand8(uint8_t c, uint8_t index)
+uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 {
     uint16_t wTimeout = 0xffff;
     uint8_t r=0;
@@ -258,7 +258,7 @@ uint8_t Optimized_ILI9341::readcommand8(uint8_t c, uint8_t index)
 
 
 // KJE Added functions to read pixel data...
-uint16_t Optimized_ILI9341::readPixel(int16_t x, int16_t y)
+uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 {
     SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   writecommand_cont(ILI9341_CASET); // Column addr set
@@ -308,7 +308,7 @@ static const uint8_t init_commands[] = {
 	0
 };
 
-void Optimized_ILI9341::begin(void)
+void ILI9341_t3::begin(void)
 {
 	SPI.begin();
 	if (SPI.pinIsChipSelect(_cs, _dc)) {
@@ -399,7 +399,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "glcdfont.c"
 
 // Draw a circle outline
-void Optimized_ILI9341::drawCircle(int16_t x0, int16_t y0, int16_t r,
+void ILI9341_t3::drawCircle(int16_t x0, int16_t y0, int16_t r,
     uint16_t color) {
   int16_t f = 1 - r;
   int16_t ddF_x = 1;
@@ -433,7 +433,7 @@ void Optimized_ILI9341::drawCircle(int16_t x0, int16_t y0, int16_t r,
   }
 }
 
-void Optimized_ILI9341::drawCircleHelper( int16_t x0, int16_t y0,
+void ILI9341_t3::drawCircleHelper( int16_t x0, int16_t y0,
                int16_t r, uint8_t cornername, uint16_t color) {
   int16_t f     = 1 - r;
   int16_t ddF_x = 1;
@@ -469,14 +469,14 @@ void Optimized_ILI9341::drawCircleHelper( int16_t x0, int16_t y0,
   }
 }
 
-void Optimized_ILI9341::fillCircle(int16_t x0, int16_t y0, int16_t r,
+void ILI9341_t3::fillCircle(int16_t x0, int16_t y0, int16_t r,
 			      uint16_t color) {
   drawFastVLine(x0, y0-r, 2*r+1, color);
   fillCircleHelper(x0, y0, r, 3, 0, color);
 }
 
 // Used to do circles and roundrects
-void Optimized_ILI9341::fillCircleHelper(int16_t x0, int16_t y0, int16_t r,
+void ILI9341_t3::fillCircleHelper(int16_t x0, int16_t y0, int16_t r,
     uint8_t cornername, int16_t delta, uint16_t color) {
 
   int16_t f     = 1 - r;
@@ -508,7 +508,7 @@ void Optimized_ILI9341::fillCircleHelper(int16_t x0, int16_t y0, int16_t r,
 
 
 // Bresenham's algorithm - thx wikpedia
-void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
+void ILI9341_t3::drawLine(int16_t x0, int16_t y0,
 	int16_t x1, int16_t y1, uint16_t color)
 {
 	if (y0 == y1) {
@@ -597,7 +597,7 @@ void Optimized_ILI9341::drawLine(int16_t x0, int16_t y0,
 }
 
 // Draw a rectangle
-void Optimized_ILI9341::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+void ILI9341_t3::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	HLine(x, y, w, color);
@@ -609,7 +609,7 @@ void Optimized_ILI9341::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uin
 }
 
 // Draw a rounded rectangle
-void Optimized_ILI9341::drawRoundRect(int16_t x, int16_t y, int16_t w,
+void ILI9341_t3::drawRoundRect(int16_t x, int16_t y, int16_t w,
   int16_t h, int16_t r, uint16_t color) {
   // smarter version
   drawFastHLine(x+r  , y    , w-2*r, color); // Top
@@ -624,7 +624,7 @@ void Optimized_ILI9341::drawRoundRect(int16_t x, int16_t y, int16_t w,
 }
 
 // Fill a rounded rectangle
-void Optimized_ILI9341::fillRoundRect(int16_t x, int16_t y, int16_t w,
+void ILI9341_t3::fillRoundRect(int16_t x, int16_t y, int16_t w,
 				 int16_t h, int16_t r, uint16_t color) {
   // smarter version
   fillRect(x+r, y, w-2*r, h, color);
@@ -635,7 +635,7 @@ void Optimized_ILI9341::fillRoundRect(int16_t x, int16_t y, int16_t w,
 }
 
 // Draw a triangle
-void Optimized_ILI9341::drawTriangle(int16_t x0, int16_t y0,
+void ILI9341_t3::drawTriangle(int16_t x0, int16_t y0,
 				int16_t x1, int16_t y1,
 				int16_t x2, int16_t y2, uint16_t color) {
   drawLine(x0, y0, x1, y1, color);
@@ -644,7 +644,7 @@ void Optimized_ILI9341::drawTriangle(int16_t x0, int16_t y0,
 }
 
 // Fill a triangle
-void Optimized_ILI9341::fillTriangle ( int16_t x0, int16_t y0,
+void ILI9341_t3::fillTriangle ( int16_t x0, int16_t y0,
 				  int16_t x1, int16_t y1,
 				  int16_t x2, int16_t y2, uint16_t color) {
 
@@ -721,7 +721,7 @@ void Optimized_ILI9341::fillTriangle ( int16_t x0, int16_t y0,
   }
 }
 
-void Optimized_ILI9341::drawBitmap(int16_t x, int16_t y,
+void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
 			      const uint8_t *bitmap, int16_t w, int16_t h,
 			      uint16_t color) {
 
@@ -736,7 +736,7 @@ void Optimized_ILI9341::drawBitmap(int16_t x, int16_t y,
   }
 }
 
-size_t Optimized_ILI9341::write(uint8_t c) {
+size_t ILI9341_t3::write(uint8_t c) {
   if (c == '\n') {
     cursor_y += textsize*8;
     cursor_x  = 0;
@@ -754,7 +754,7 @@ size_t Optimized_ILI9341::write(uint8_t c) {
 }
 
 // Draw a character
-void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
+void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			    uint16_t fgcolor, uint16_t bgcolor, uint8_t size)
 {
 	if((x >= _width)            || // Clip right
@@ -881,31 +881,31 @@ void Optimized_ILI9341::drawChar(int16_t x, int16_t y, unsigned char c,
 	}
 }
 
-void Optimized_ILI9341::setCursor(int16_t x, int16_t y) {
+void ILI9341_t3::setCursor(int16_t x, int16_t y) {
   cursor_x = x;
   cursor_y = y;
 }
 
-void Optimized_ILI9341::setTextSize(uint8_t s) {
+void ILI9341_t3::setTextSize(uint8_t s) {
   textsize = (s > 0) ? s : 1;
 }
 
-void Optimized_ILI9341::setTextColor(uint16_t c) {
+void ILI9341_t3::setTextColor(uint16_t c) {
   // For 'transparent' background, we'll set the bg 
   // to the same as fg instead of using a flag
   textcolor = textbgcolor = c;
 }
 
-void Optimized_ILI9341::setTextColor(uint16_t c, uint16_t b) {
+void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
   textcolor   = c;
   textbgcolor = b; 
 }
 
-void Optimized_ILI9341::setTextWrap(boolean w) {
+void ILI9341_t3::setTextWrap(boolean w) {
   wrap = w;
 }
 
-uint8_t Optimized_ILI9341::getRotation(void) {
+uint8_t ILI9341_t3::getRotation(void) {
   return rotation;
 }
 

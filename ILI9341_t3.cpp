@@ -768,7 +768,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		if (size == 1) {
 			uint8_t mask = 0x01;
 			int16_t xoff, yoff;
-			for (yoff=0; yoff < 7; yoff++) {
+			for (yoff=0; yoff < 8; yoff++) {
 				uint8_t line = 0;
 				for (xoff=0; xoff < 5; xoff++) {
 					if (font[c * 5 + xoff] & mask) line |= 1;
@@ -805,7 +805,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		} else {
 			uint8_t mask = 0x01;
 			int16_t xoff, yoff;
-			for (yoff=0; yoff < 7; yoff++) {
+			for (yoff=0; yoff < 8; yoff++) {
 				uint8_t line = 0;
 				for (xoff=0; xoff < 5; xoff++) {
 					if (font[c * 5 + xoff] & mask) line |= 1;
@@ -853,7 +853,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		uint8_t xr, yr;
 		uint8_t mask = 0x01;
 		uint16_t color;
-		for (y=0; y < 7; y++) {
+		for (y=0; y < 8; y++) {
 			for (yr=0; yr < size; yr++) {
 				for (x=0; x < 5; x++) {
 					if (font[c * 5 + x] & mask) {

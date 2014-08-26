@@ -116,6 +116,8 @@ class ILI9341_t3 : public Print
 
 	// KJE Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
+    void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+    void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
 
 
 	// from Adafruit_GFX.h

@@ -257,32 +257,38 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 }
 
 
-// KJE Added functions to read pixel data...
+// Read Pixel at x,y and get back 16-bit packed color
 uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 {
-    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  writecommand_cont(ILI9341_CASET); // Column addr set
-  writedata16_cont(x);  // XSTART
-  x++;
-  writedata16_cont(x);  // XEND
+	uint8_t dummy,r,g,b;
 
-  writecommand_cont(ILI9341_PASET); // Row addr set
-  writedata16_cont(y);     // YSTART
-  y++;
-  writedata16_cont(y);     // YEND
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 
-  writecommand_cont(ILI9341_RAMRD); // write to RAM
-  
-  digitalWrite(_dc, HIGH);
-  digitalWrite(_cs, LOW);
-  uint16_t r = SPI.transfer(0x00);
-  r <<= 8;
-  r |= SPI.transfer(0x00);
-  digitalWrite(_cs, HIGH);
-    SPI.endTransaction();
-  return r;
+	setAddr(x, y, x, y);
+	writecommand_cont(ILI9341_RAMRD); // read from RAM
+	waitTransmitComplete();
+
+	// Push 4 bytes over SPI
+	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+    waitFifoEmpty();    // wait for both queues to be empty.
+
+	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+
+	// Wait for End of Queue
+	while ((SPI0.SR & SPI_SR_EOQF) == 0) ;
+	SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
+
+	// Read Pixel Data
+	dummy = SPI0.POPR;	// Read a DUMMY byte of GRAM
+	r = SPI0.POPR;		// Read a RED byte of GRAM
+	g = SPI0.POPR;		// Read a GREEN byte of GRAM
+	b = SPI0.POPR;		// Read a BLUE byte of GRAM
+
+	SPI.endTransaction();
+	return color565(r,g,b);
 }
-
 static const uint8_t init_commands[] = {
 	4, 0xEF, 0x03, 0x80, 0x02,
 	4, 0xCF, 0x00, 0XC1, 0X30,

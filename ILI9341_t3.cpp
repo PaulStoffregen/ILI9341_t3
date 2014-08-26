@@ -301,6 +301,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
 	waitTransmitComplete();
+#if 0
 
 	// Push dummy byte over SPI
 	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
@@ -324,6 +325,38 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
         b = SPI0.POPR;		// Read a BLUE byte of GRAM
        *pcolors++ = color565(r,g,b);
     }
+#else
+	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT | SPI_PUSHR_EOQ;
+    while ((SPI0.SR & SPI_SR_EOQF) == 0) ;
+    SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
+    while ((SPI0.SR & 0xf0)) { 
+        dummy = SPI0.POPR;	// Read a DUMMY byte but only once
+    }
+    c *= 3; // number of bytes we will transmit to the display
+    while (c--) {
+        if (c)
+            SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+        else    
+            SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+
+        // If last byte wait until all have come in...
+        if (c == 0) {
+            while ((SPI0.SR & SPI_SR_EOQF) == 0) ;
+            SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
+        }
+
+    if ((SPI0.SR & 0xf0) >= 0x30) { // do we have at least 3 bytes in queue if so extract...
+            r = SPI0.POPR;		// Read a RED byte of GRAM
+            g = SPI0.POPR;		// Read a GREEN byte of GRAM
+            b = SPI0.POPR;		// Read a BLUE byte of GRAM
+           *pcolors++ = color565(r,g,b);
+        }
+        
+        // like waitFiroNotFull but does not pop our return queue
+		while ((SPI0.SR & (15 << 12)) > (3 << 12)) ;
+    }
+
+#endif
 	SPI.endTransaction();
 }
 

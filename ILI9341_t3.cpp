@@ -916,7 +916,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 	} else {
 		// This solid background approach is about 5 time faster
 		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-		setAddr(x, y, x + 6 * size - 1, y + 9 * size - 1);
+		setAddr(x, y, x + 6 * size - 1, y + 8 * size - 1);
 		writecommand_cont(ILI9341_RAMWR);
 		uint8_t xr, yr;
 		uint8_t mask = 0x01;
@@ -934,17 +934,16 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 					}
 				}
 				for (xr=0; xr < size; xr++) {
-					writedata16_cont(bgcolor);
+                    if ((y == 7) && (yr == (size - 1 ))) {
+					// this is the last pixel on the last line
+                        writedata16_last(bgcolor);
+                    } else {
+                        writedata16_cont(bgcolor);
+                    }
 				}
 			}
 			mask = mask << 1;
 		}
-		uint32_t n = 6 * size * size;
-		do {
-			writedata16_cont(bgcolor);
-			n--;
-		} while (n > 1);
-		writedata16_last(bgcolor);
 		SPI.endTransaction();
 	}
 }

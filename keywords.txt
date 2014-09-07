@@ -29,3 +29,6 @@ setCursor	KEYWORD2
 setTextColor	KEYWORD2
 setTextSize	KEYWORD2
 setTextWrap	KEYWORD2
+readPixel	KEYWORD2
+readRect	KEYWORD2
+writeRect	KEYWORD2

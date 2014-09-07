@@ -114,9 +114,10 @@ class ILI9341_t3 : public Print
 	//uint8_t readdata(void);
 	uint8_t readcommand8(uint8_t reg, uint8_t index = 0);
 
-	// KJE Added functions to read pixel data...
+	// Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
-
+    void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+    void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
 
 	// from Adafruit_GFX.h
 	void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);

@@ -25,11 +25,15 @@
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
 void setup() {
+  tft.begin();
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setTextColor(ILI9341_YELLOW);
+  tft.setTextSize(2);
+  tft.println("Waiting for Arduino Serial Monitor...");
+
   Serial.begin(9600);
   while (!Serial) ; // wait for Arduino Serial Monitor
   Serial.println("ILI9341 Test!"); 
- 
-  tft.begin();
 
   // read diagnostics (optional but can help debug problems)
   uint8_t x = tft.readcommand8(ILI9341_RDMODE);

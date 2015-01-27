@@ -1,3 +1,13 @@
+------------------------------------------
+
+Changes to enable Vertical text scroll
+Methods added:
+	- void setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	- void enableScroll(void);
+	- void disableScroll(void);
+	- void scrollTextArea(void);
+
+
 Discussion regarding this optimized version:
 
 http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9341-%28320x240-TFT-color-display%29-library

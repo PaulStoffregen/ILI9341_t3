@@ -138,22 +138,35 @@ class ILI9341_t3 : public Print
 	virtual size_t write(uint8_t);
 	int16_t width(void)  { return _width; }
 	int16_t height(void) { return _height; }
+	int16_t getCursor_x(void);
+	int16_t getCursor_y(void);
 	uint8_t getRotation(void);
 	void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	
+	//VMH Added scroll methods
+	void setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	void enableScroll(void);
+	void disableScroll(void);
+	void scrollTextArea(void);
+	boolean getWrtInsTextArea(void) {return wrtInsTextArea;}
 
 
  protected:
   int16_t
     _width, _height, // Display w/h as modified by current rotation
-    cursor_x, cursor_y;
+    cursor_x, cursor_y,
+	scroll_x, scroll_y,
+	scroll_width, scroll_height;
   uint16_t
-    textcolor, textbgcolor;
+    textcolor, textbgcolor, scrollbgcolor;
   uint8_t
     textsize,
     rotation;
   boolean
-    wrap; // If set, 'wrap' text at right edge of display
+    wrap, // If set, 'wrap' text at right edge of display
+	scrollEnable,
+	wrtInsTextArea; // Is it writing inside of the text area?
 
   private:
   	uint8_t  _rst;

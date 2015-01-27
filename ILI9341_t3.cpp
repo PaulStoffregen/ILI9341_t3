@@ -40,6 +40,7 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst)
 	textsize  = 1;
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
+	scrollEnable = false;
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -811,11 +812,20 @@ size_t ILI9341_t3::write(uint8_t c) {
   } else if (c == '\r') {
     // skip em
   } else {
+	if(scrollEnable && wrtInsTextArea && (cursor_y > (scroll_y+scroll_height - textsize*8))){
+		scrollTextArea();
+		cursor_y -= textsize*8;
+		cursor_x = 0;
+	} 
     drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
     cursor_x += textsize*6;
-    if (wrap && (cursor_x > (_width - textsize*6))) {
-      cursor_y += textsize*8;
-      cursor_x = 0;
+    if(wrap && scrollEnable && wrtInsTextArea && (cursor_x > (scroll_x+scroll_width - textsize*6))){
+    	cursor_y += textsize*8;
+		cursor_x = 0;
+    }
+    else if (wrap && (cursor_x > (_width - textsize*6))) {
+		cursor_y += textsize*8;
+		cursor_x = 0;
     }
   }
   return 1;
@@ -945,9 +955,15 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 }
 
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {
-  cursor_x = x;
-  cursor_y = y;
+  	cursor_x = x;
+  	cursor_y = y;
+  if(x>=scroll_x && x<=(scroll_x+scroll_width) && y>=scroll_y && y<=(scroll_y+scroll_height)){
+	wrtInsTextArea	= true;
+	} else {
+	wrtInsTextArea = false;
+	}
 }
+
 
 void ILI9341_t3::setTextSize(uint8_t s) {
   textsize = (s > 0) ? s : 1;
@@ -970,6 +986,42 @@ void ILI9341_t3::setTextWrap(boolean w) {
 
 uint8_t ILI9341_t3::getRotation(void) {
   return rotation;
+}
+
+int16_t ILI9341_t3::getCursor_x(void) {
+  return cursor_x;
+}
+
+int16_t ILI9341_t3::getCursor_y(void) {
+  return cursor_y;
+}
+
+void ILI9341_t3::enableScroll(void){
+	scrollEnable = true;
+	scrollbgcolor = ILI9341_BLACK;
+	setScrollTextArea(0,0,_width,_height,scrollbgcolor);
+}
+
+void ILI9341_t3::disableScroll(void){
+	scrollEnable = false;
+}
+
+void ILI9341_t3::setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
+	scroll_x = x; 
+	scroll_y = y;
+	scroll_width = w; 
+	scroll_height = h;
+	scrollbgcolor = color;
+	fillRect(scroll_x,scroll_y,scroll_width,scroll_height,scrollbgcolor);
+}
+
+void ILI9341_t3::scrollTextArea(void){
+	uint16_t awColors[scroll_width];
+	for (int y=scroll_y+textsize*8; y < (scroll_y+scroll_height); y++) { 
+    readRect(scroll_x, y, scroll_width, 1, awColors);  // try to read one row at a time...
+    writeRect(scroll_x, y-textsize*8, scroll_width, 1, awColors);  // try to read one row at a time...
+  }
+  fillRect(scroll_x, (scroll_y+scroll_height)-textsize*8, scroll_width, textsize*8, scrollbgcolor);
 }
 
 

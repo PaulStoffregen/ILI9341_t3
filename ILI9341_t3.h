@@ -174,8 +174,8 @@ class ILI9341_t3 : public Print
 		uint32_t sr;
 		uint32_t tmp __attribute__((unused));
 		do {
-			sr = SPI0.SR;
-			if (sr & 0xF0) tmp = SPI0_POPR;  // drain RX FIFO
+			sr = KINETISK_SPI0.SR;
+			if (sr & 0xF0) tmp = KINETISK_SPI0.POPR;  // drain RX FIFO
 		} while ((sr & (15 << 12)) > (3 << 12));
 	}
 	//void waitFifoEmpty(void) __attribute__((always_inline)) {
@@ -183,43 +183,43 @@ class ILI9341_t3 : public Print
 		uint32_t sr;
 		uint32_t tmp __attribute__((unused));
 		do {
-			sr = SPI0.SR;
-			if (sr & 0xF0) tmp = SPI0_POPR;  // drain RX FIFO
+			sr = KINETISK_SPI0.SR;
+			if (sr & 0xF0) tmp = KINETISK_SPI0.POPR;  // drain RX FIFO
 		} while ((sr & 0xF0F0) > 0);             // wait both RX & TX empty
 	}
 	void waitTransmitComplete(void) __attribute__((always_inline)) {
 		uint32_t tmp __attribute__((unused));
-		while (!(SPI0.SR & SPI_SR_TCF)) ; // wait until final output done
-		tmp = SPI0_POPR;                  // drain the final RX FIFO word
+		while (!(KINETISK_SPI0.SR & SPI_SR_TCF)) ; // wait until final output done
+		tmp = KINETISK_SPI0.POPR;                  // drain the final RX FIFO word
 	}
 	void writecommand_cont(uint8_t c) __attribute__((always_inline)) {
-		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+		KINETISK_SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
 		waitFifoNotFull();
 	}
 	void writedata8_cont(uint8_t c) __attribute__((always_inline)) {
-		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+		KINETISK_SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
 		waitFifoNotFull();
 	}
 	void writedata16_cont(uint16_t d) __attribute__((always_inline)) {
-		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
+		KINETISK_SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
 		waitFifoNotFull();
 	}
 	void writecommand_last(uint8_t c) __attribute__((always_inline)) {
 		waitFifoEmpty();
-		SPI0.SR = SPI_SR_TCF;
-		SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
+		KINETISK_SPI0.SR = SPI_SR_TCF;
+		KINETISK_SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0);
 		waitTransmitComplete();
 	}
 	void writedata8_last(uint8_t c) __attribute__((always_inline)) {
 		waitFifoEmpty();
-		SPI0.SR = SPI_SR_TCF;
-		SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
+		KINETISK_SPI0.SR = SPI_SR_TCF;
+		KINETISK_SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
 		waitTransmitComplete();
 	}
 	void writedata16_last(uint16_t d) __attribute__((always_inline)) {
 		waitFifoEmpty();
-		SPI0.SR = SPI_SR_TCF;
-		SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
+		KINETISK_SPI0.SR = SPI_SR_TCF;
+		KINETISK_SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1);
 		waitTransmitComplete();
 	}
 	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)

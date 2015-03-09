@@ -28,11 +28,14 @@
 
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
-ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst)
+ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_t sclk, uint8_t miso)
 {
 	_cs   = cs;
 	_dc   = dc;
 	_rst  = rst;
+    _mosi = mosi;
+    _sclk = sclk;
+    _miso = miso;
 	_width    = WIDTH;
 	_height   = HEIGHT;
 	rotation  = 0;
@@ -380,6 +383,13 @@ static const uint8_t init_commands[] = {
 
 void ILI9341_t3::begin(void)
 {
+    // verify SPI pins are valid;
+    if ((_mosi == 11 || _mosi == 7) && (_miso == 12 || _miso == 8) && (_sclk == 13 || _sclk == 14)) {
+        SPI.setMOSI(_mosi);
+        SPI.setMISO(_miso);
+        SPI.setSCK(_sclk);
+	} else
+        return; // not valid pins...
 	SPI.begin();
 	if (SPI.pinIsChipSelect(_cs, _dc)) {
 		pcs_data = SPI.setCS(_cs);

@@ -95,7 +95,7 @@
 class ILI9341_t3 : public Print
 {
   public:
-	ILI9341_t3(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
+	ILI9341_t3(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255, uint8_t _MOSI=11, uint8_t _SCLK=13, uint8_t _MISO=12);
 	void begin(void);
 	void pushColor(uint16_t color);
 	void fillScreen(uint16_t color);
@@ -159,6 +159,7 @@ class ILI9341_t3 : public Print
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
+    uint8_t _miso, _mosi, _sclk;
 
 	void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 	  __attribute__((always_inline)) {

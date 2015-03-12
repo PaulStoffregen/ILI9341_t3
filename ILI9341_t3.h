@@ -131,6 +131,8 @@ class ILI9341_t3 : public Print
 	void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color);
 	void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
 	void setCursor(int16_t x, int16_t y);
+	void setCursorWrap(int16_t x);
+	void getCursor(int16_t *x, int16_t *y);
 	void setTextColor(uint16_t c);
 	void setTextColor(uint16_t c, uint16_t bg);
 	void setTextSize(uint8_t s);
@@ -146,7 +148,7 @@ class ILI9341_t3 : public Print
  protected:
   int16_t
     _width, _height, // Display w/h as modified by current rotation
-    cursor_x, cursor_y;
+    cursor_wrap_x, cursor_x, cursor_y;
   uint16_t
     textcolor, textbgcolor;
   uint8_t

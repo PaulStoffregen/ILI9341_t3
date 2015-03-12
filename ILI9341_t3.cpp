@@ -39,7 +39,7 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	_width    = WIDTH;
 	_height   = HEIGHT;
 	rotation  = 0;
-	cursor_y  = cursor_x    = 0;
+	cursor_wrap_x = cursor_y  = cursor_x    = 0;
 	textsize  = 1;
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
@@ -819,7 +819,7 @@ void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
 size_t ILI9341_t3::write(uint8_t c) {
   if (c == '\n') {
     cursor_y += textsize*8;
-    cursor_x  = 0;
+    cursor_x  = cursor_wrap_x;
   } else if (c == '\r') {
     // skip em
   } else {
@@ -827,7 +827,7 @@ size_t ILI9341_t3::write(uint8_t c) {
     cursor_x += textsize*6;
     if (wrap && (cursor_x > (_width - textsize*6))) {
       cursor_y += textsize*8;
-      cursor_x = 0;
+      cursor_x = cursor_wrap_x;
     }
   }
   return 1;
@@ -959,6 +959,15 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {
   cursor_x = x;
   cursor_y = y;
+}
+
+void ILI9341_t3::setCursorWrap(int16_t x) {
+  cursor_wrap_x = x;
+}
+
+void ILI9341_t3::getCursor(int16_t *x, int16_t *y) {
+  *x = cursor_x;
+  *y = cursor_y;
 }
 
 void ILI9341_t3::setTextSize(uint8_t s) {

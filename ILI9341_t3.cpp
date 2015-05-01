@@ -66,7 +66,7 @@ void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y);
-	writecommand_cont(ILI9341_RAMWR);
+	writecommand_last(ILI9341_RAMWR);
 	writedata16_last(color);
 	SPI.endTransaction();
 }
@@ -78,7 +78,7 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	if((y+h-1) >= _height) h = _height-y;
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y+h-1);
-	writecommand_cont(ILI9341_RAMWR);
+	writecommand_last(ILI9341_RAMWR);
 	while (h-- > 1) {
 		writedata16_cont(color);
 	}
@@ -93,7 +93,7 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	if((x+w-1) >= _width)  w = _width-x;
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y);
-	writecommand_cont(ILI9341_RAMWR);
+	writecommand_last(ILI9341_RAMWR);
 	while (w-- > 1) {
 		writedata16_cont(color);
 	}
@@ -119,7 +119,7 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	// it'll cost more overhead, so we don't stall other SPI libs
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
-	writecommand_cont(ILI9341_RAMWR);
+	writecommand_last(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
 		for(x=w; x>1; x--) {
 			writedata16_cont(color);
@@ -141,7 +141,7 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 
 void ILI9341_t3::setRotation(uint8_t m)
 {
-	writecommand_cont(ILI9341_MADCTL);
+	writecommand_last(ILI9341_MADCTL);
 	rotation = m % 4; // can't be higher than 3
 	switch (rotation) {
 	case 0:
@@ -344,7 +344,7 @@ void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t 
 {
    	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
-	writecommand_cont(ILI9341_RAMWR);
+	writecommand_last(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
 		for(x=w; x>1; x--) {
 			writedata16_cont(*pcolors++);
@@ -384,12 +384,14 @@ static const uint8_t init_commands[] = {
 void ILI9341_t3::begin(void)
 {
     // verify SPI pins are valid;
+	
     if ((_mosi == 11 || _mosi == 7) && (_miso == 12 || _miso == 8) && (_sclk == 13 || _sclk == 14)) {
         SPI.setMOSI(_mosi);
         SPI.setMISO(_miso);
         SPI.setSCK(_sclk);
 	} else
         return; // not valid pins...
+	
 	SPI.begin();
 	if (SPI.pinIsChipSelect(_cs, _dc)) {
 		pcs_data = SPI.setCS(_cs);
@@ -399,6 +401,7 @@ void ILI9341_t3::begin(void)
 		pcs_command = 0;
 		return;
 	}
+	
 	// toggle RST low to reset
 	if (_rst < 255) {
 		pinMode(_rst, OUTPUT);
@@ -672,7 +675,6 @@ void ILI9341_t3::drawLine(int16_t x0, int16_t y0,
 			HLine(xbegin, y0, x0 - xbegin, color);
 		}
 	}
-	writecommand_last(ILI9341_NOP);
 	SPI.endTransaction();
 }
 
@@ -684,7 +686,6 @@ void ILI9341_t3::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	HLine(x, y+h-1, w, color);
 	VLine(x, y, h, color);
 	VLine(x+w-1, y, h, color);
-	writecommand_last(ILI9341_NOP);
 	SPI.endTransaction();
 }
 
@@ -929,7 +930,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		// This solid background approach is about 5 time faster
 		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 		setAddr(x, y, x + 6 * size - 1, y + 8 * size - 1);
-		writecommand_cont(ILI9341_RAMWR);
+		writecommand_last(ILI9341_RAMWR);
 		uint8_t xr, yr;
 		uint8_t mask = 0x01;
 		uint16_t color;
@@ -951,7 +952,6 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			}
 			mask = mask << 1;
 		}
-		writecommand_last(ILI9341_NOP);
 		SPI.endTransaction();
 	}
 }

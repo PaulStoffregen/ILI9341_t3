@@ -155,7 +155,7 @@ class ILI9341_t3 : public Print
   boolean
     wrap; // If set, 'wrap' text at right edge of display
 
-  private:
+//  private:
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;

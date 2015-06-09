@@ -173,10 +173,30 @@ void ILI9341_t3::invertDisplay(boolean i)
 	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
 }
 
+void ILI9341_t3::drawQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2,int16_t x3, int16_t y3, uint16_t color) 
+{
+	drawLine(x0, y0, x1, y1, color);
+	drawLine(x1, y1, x2, y2, color);
+	drawLine(x2, y2, x3, y3, color);
+	drawLine(x3, y3, x0, y0, color);
+}
 
 
-
-
+void ILI9341_t3::drawPolygon(int16_t cx, int16_t cy, uint8_t sides, int16_t diameter, float rot, uint16_t color)
+{ 
+	sides = (sides > 2? sides : 3);
+	float dtr = (PI/180.0) + PI;
+	float rads = 360.0 / sides;
+	uint8_t i;
+	for (i = 0; i < sides; i++) { 
+		drawLine(
+			cx + (sin((i*rads + rot) * dtr) * diameter),
+			cy + (cos((i*rads + rot) * dtr) * diameter),
+			cx + (sin(((i+1)*rads + rot) * dtr) * diameter),
+			cy + (cos(((i+1)*rads + rot) * dtr) * diameter),
+			color);
+	}
+}
 
 
 

@@ -28,11 +28,14 @@
 
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
-ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst)
+ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_t sclk, uint8_t miso)
 {
 	_cs   = cs;
 	_dc   = dc;
 	_rst  = rst;
+    _mosi = mosi;
+    _sclk = sclk;
+    _miso = miso;
 	_width    = WIDTH;
 	_height   = HEIGHT;
 	rotation  = 0;
@@ -210,48 +213,48 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     uint8_t r=0;
 
     SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-    while (((SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
+    while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
     
     // Make sure the last frame has been sent...
-    SPI0.SR = SPI_SR_TCF;   // dlear it out;
+    KINETISK_SPI0.SR = SPI_SR_TCF;   // dlear it out;
     wTimeout = 0xffff;
-    while (!((SPI0.SR) & SPI_SR_TCF) && (--wTimeout)) ; // wait until it says the last frame completed
+    while (!((KINETISK_SPI0.SR) & SPI_SR_TCF) && (--wTimeout)) ; // wait until it says the last frame completed
 
     // clear out any current received bytes
     wTimeout = 0x10;    // should not go more than 4...
-    while ((((SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
-        r = SPI0.POPR;
+    while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
+        r = KINETISK_SPI0.POPR;
     }
     
     //writecommand(0xD9); // sekret command
-	SPI0.PUSHR = 0xD9 | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
-//	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	KINETISK_SPI0.PUSHR = 0xD9 | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
 
     // writedata(0x10 + index);
-	SPI0.PUSHR = (0x10 + index) | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
-//	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	KINETISK_SPI0.PUSHR = (0x10 + index) | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
+//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
 
     // writecommand(c);
-   	SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
-//	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+   	KINETISK_SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
 
     // readdata
-	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
-//	while (((SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
+//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
         
     // Now wait until completed. 
     wTimeout = 0xffff;
-    while (((SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
+    while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
 
     // Make sure the last frame has been sent...
-    SPI0.SR = SPI_SR_TCF;   // dlear it out;
+    KINETISK_SPI0.SR = SPI_SR_TCF;   // dlear it out;
     wTimeout = 0xffff;
-    while (!((SPI0.SR) & SPI_SR_TCF) && (--wTimeout)) ; // wait until it says the last frame completed
+    while (!((KINETISK_SPI0.SR) & SPI_SR_TCF) && (--wTimeout)) ; // wait until it says the last frame completed
 
     wTimeout = 0x10;    // should not go more than 4...
     // lets get all of the values on the FIFO
-    while ((((SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
-        r = SPI0.POPR;
+    while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
+        r = KINETISK_SPI0.POPR;
     }
     SPI.endTransaction();
     return r;  // get the received byte... should check for it first...
@@ -261,7 +264,8 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 // Read Pixel at x,y and get back 16-bit packed color
 uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 {
-	uint8_t dummy,r,g,b;
+	uint8_t dummy __attribute__((unused));
+	uint8_t r,g,b;
 
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 
@@ -270,22 +274,22 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 	waitTransmitComplete();
 
 	// Push 4 bytes over SPI
-	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-    waitFifoEmpty();    // wait for both queues to be empty.
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	waitFifoEmpty();    // wait for both queues to be empty.
 
-	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
 
 	// Wait for End of Queue
-	while ((SPI0.SR & SPI_SR_EOQF) == 0) ;
-	SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
+	while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
+	KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
 
 	// Read Pixel Data
-	dummy = SPI0.POPR;	// Read a DUMMY byte of GRAM
-	r = SPI0.POPR;		// Read a RED byte of GRAM
-	g = SPI0.POPR;		// Read a GREEN byte of GRAM
-	b = SPI0.POPR;		// Read a BLUE byte of GRAM
+	dummy = KINETISK_SPI0.POPR;	// Read a DUMMY byte of GRAM
+	r = KINETISK_SPI0.POPR;		// Read a RED byte of GRAM
+	g = KINETISK_SPI0.POPR;		// Read a GREEN byte of GRAM
+	b = KINETISK_SPI0.POPR;		// Read a BLUE byte of GRAM
 
 	SPI.endTransaction();
 	return color565(r,g,b);
@@ -294,44 +298,45 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 // Now lets see if we can read in multiple pixels
 void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) 
 {
-	uint8_t dummy,r,g,b;
-    uint16_t c = w * h;
-    uint8_t fFirst = 1;
+	uint8_t dummy __attribute__((unused));
+	uint8_t r,g,b;
+	uint16_t c = w * h;
+
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
 	waitTransmitComplete();
-	SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT | SPI_PUSHR_EOQ;
-    while ((SPI0.SR & SPI_SR_EOQF) == 0) ;
-    SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
-    while ((SPI0.SR & 0xf0)) { 
-        dummy = SPI0.POPR;	// Read a DUMMY byte but only once
-    }
-    c *= 3; // number of bytes we will transmit to the display
-    while (c--) {
-        if (c)
-            SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-        else    
-            SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT | SPI_PUSHR_EOQ;
+	while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
+	KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
+	while ((KINETISK_SPI0.SR & 0xf0)) { 
+		dummy = KINETISK_SPI0.POPR;	// Read a DUMMY byte but only once
+	}
+	c *= 3; // number of bytes we will transmit to the display
+	while (c--) {
+        	if (c) {
+            		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+        	} else {
+            		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+		}
 
-        // If last byte wait until all have come in...
-        if (c == 0) {
-            while ((SPI0.SR & SPI_SR_EOQF) == 0) ;
-            SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
-        }
+		// If last byte wait until all have come in...
+		if (c == 0) {
+			while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
+			KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
+		}
 
-    if ((SPI0.SR & 0xf0) >= 0x30) { // do we have at least 3 bytes in queue if so extract...
-            r = SPI0.POPR;		// Read a RED byte of GRAM
-            g = SPI0.POPR;		// Read a GREEN byte of GRAM
-            b = SPI0.POPR;		// Read a BLUE byte of GRAM
-           *pcolors++ = color565(r,g,b);
-        }
+		if ((KINETISK_SPI0.SR & 0xf0) >= 0x30) { // do we have at least 3 bytes in queue if so extract...
+			r = KINETISK_SPI0.POPR;		// Read a RED byte of GRAM
+			g = KINETISK_SPI0.POPR;		// Read a GREEN byte of GRAM
+			b = KINETISK_SPI0.POPR;		// Read a BLUE byte of GRAM
+			*pcolors++ = color565(r,g,b);
+		}
         
-        // like waitFiroNotFull but does not pop our return queue
-		while ((SPI0.SR & (15 << 12)) > (3 << 12)) ;
-    }
-
+		// like waitFiroNotFull but does not pop our return queue
+		while ((KINETISK_SPI0.SR & (15 << 12)) > (3 << 12)) ;
+	}
 	SPI.endTransaction();
 }
 
@@ -379,6 +384,13 @@ static const uint8_t init_commands[] = {
 
 void ILI9341_t3::begin(void)
 {
+    // verify SPI pins are valid;
+    if ((_mosi == 11 || _mosi == 7) && (_miso == 12 || _miso == 8) && (_sclk == 13 || _sclk == 14)) {
+        SPI.setMOSI(_mosi);
+        SPI.setMISO(_miso);
+        SPI.setSCK(_sclk);
+	} else
+        return; // not valid pins...
 	SPI.begin();
 	if (SPI.pinIsChipSelect(_cs, _dc)) {
 		pcs_data = SPI.setCS(_cs);
@@ -999,7 +1011,6 @@ int16_t ILI9341_t3::getCursor_y(void) {
 void ILI9341_t3::enableScroll(void){
 	scrollEnable = true;
 	scrollbgcolor = ILI9341_BLACK;
-	setScrollTextArea(0,0,_width,_height,scrollbgcolor);
 }
 
 void ILI9341_t3::disableScroll(void){

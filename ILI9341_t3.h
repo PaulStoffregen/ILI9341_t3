@@ -126,8 +126,8 @@ class ILI9341_t3 : public Print
 
 	// Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
-    void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
-    void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+	void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+	void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
 
 	// from Adafruit_GFX.h
 	void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
@@ -151,6 +151,8 @@ class ILI9341_t3 : public Print
 	uint8_t getRotation(void);
 	void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	int16_t getCursorX(void) const { return cursor_x; }
+	int16_t getCursorY(void) const { return cursor_y; }
 
 
  protected:
@@ -259,13 +261,39 @@ class ILI9341_t3 : public Print
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);
 	}
-
-
-
 };
 
 #ifndef swap
 #define swap(a, b) { typeof(a) t = a; a = b; b = t; }
 #endif
+
+class Adafruit_GFX_Button {
+public:
+	Adafruit_GFX_Button(void) { _gfx = NULL; }
+	void initButton(ILI9341_t3 *gfx, int16_t x, int16_t y,
+		uint8_t w, uint8_t h,
+		uint16_t outline, uint16_t fill, uint16_t textcolor,
+		const char *label, uint8_t textsize);
+	void drawButton(bool inverted = false);
+	bool contains(int16_t x, int16_t y);
+	void press(boolean p) {
+		laststate = currstate;
+		currstate = p;
+	}
+	bool isPressed() { return currstate; }
+	bool justPressed() { return (currstate && !laststate); }
+	bool justReleased() { return (!currstate && laststate); }
+private:
+	ILI9341_t3 *_gfx;
+	int16_t _x, _y;
+	uint16_t _w, _h;
+	uint8_t _textsize;
+	uint16_t _outlinecolor, _fillcolor, _textcolor;
+	char _label[10];
+	boolean currstate, laststate;
+};
+
+
+
 
 #endif

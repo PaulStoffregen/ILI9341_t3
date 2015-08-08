@@ -984,4 +984,49 @@ uint8_t ILI9341_t3::getRotation(void) {
   return rotation;
 }
 
+void Adafruit_GFX_Button::initButton(ILI9341_t3 *gfx,
+	int16_t x, int16_t y, uint8_t w, uint8_t h,
+	uint16_t outline, uint16_t fill, uint16_t textcolor,
+	const char *label, uint8_t textsize)
+{
+	_x = x;
+	_y = y;
+	_w = w;
+	_h = h;
+	_outlinecolor = outline;
+	_fillcolor = fill;
+	_textcolor = textcolor;
+	_textsize = textsize;
+	_gfx = gfx;
+	strncpy(_label, label, 9);
+	_label[9] = 0;
+}
+
+void Adafruit_GFX_Button::drawButton(bool inverted)
+{
+	uint16_t fill, outline, text;
+
+	if (! inverted) {
+		fill = _fillcolor;
+		outline = _outlinecolor;
+		text = _textcolor;
+	} else {
+		fill =  _textcolor;
+		outline = _outlinecolor;
+		text = _fillcolor;
+	}
+	_gfx->fillRoundRect(_x - (_w/2), _y - (_h/2), _w, _h, min(_w,_h)/4, fill);
+	_gfx->drawRoundRect(_x - (_w/2), _y - (_h/2), _w, _h, min(_w,_h)/4, outline);
+	_gfx->setCursor(_x - strlen(_label)*3*_textsize, _y-4*_textsize);
+	_gfx->setTextColor(text);
+	_gfx->setTextSize(_textsize);
+	_gfx->print(_label);
+}
+
+bool Adafruit_GFX_Button::contains(int16_t x, int16_t y)
+{
+	if ((x < (_x - _w/2)) || (x > (_x + _w/2))) return false;
+	if ((y < (_y - _h/2)) || (y > (_y + _h/2))) return false;
+	return true;
+}
 

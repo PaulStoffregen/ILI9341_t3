@@ -33,9 +33,9 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	_cs   = cs;
 	_dc   = dc;
 	_rst  = rst;
-    _mosi = mosi;
-    _sclk = sclk;
-    _miso = miso;
+	_mosi = mosi;
+	_sclk = sclk;
+	_miso = miso;
 	_width    = WIDTH;
 	_height   = HEIGHT;
 	rotation  = 0;
@@ -43,6 +43,7 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	textsize  = 1;
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
+	font      = NULL;
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -476,7 +477,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "glcdfont.c"
+//#include "glcdfont.c"
+extern "C" const unsigned char glcdfont[];
 
 // Draw a circle outline
 void ILI9341_t3::drawCircle(int16_t x0, int16_t y0, int16_t r,
@@ -851,7 +853,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			for (yoff=0; yoff < 8; yoff++) {
 				uint8_t line = 0;
 				for (xoff=0; xoff < 5; xoff++) {
-					if (font[c * 5 + xoff] & mask) line |= 1;
+					if (glcdfont[c * 5 + xoff] & mask) line |= 1;
 					line <<= 1;
 				}
 				line >>= 1;
@@ -888,7 +890,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			for (yoff=0; yoff < 8; yoff++) {
 				uint8_t line = 0;
 				for (xoff=0; xoff < 5; xoff++) {
-					if (font[c * 5 + xoff] & mask) line |= 1;
+					if (glcdfont[c * 5 + xoff] & mask) line |= 1;
 					line <<= 1;
 				}
 				line >>= 1;
@@ -936,7 +938,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		for (y=0; y < 8; y++) {
 			for (yr=0; yr < size; yr++) {
 				for (x=0; x < 5; x++) {
-					if (font[c * 5 + x] & mask) {
+					if (glcdfont[c * 5 + x] & mask) {
 						color = fgcolor;
 					} else {
 						color = bgcolor;

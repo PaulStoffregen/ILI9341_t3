@@ -19,7 +19,9 @@
 #ifndef _ILI9341_t3H_
 #define _ILI9341_t3H_
 
+#ifdef __cplusplus
 #include "Arduino.h"
+#endif
 
 #define ILI9341_TFTWIDTH  240
 #define ILI9341_TFTHEIGHT 320
@@ -102,6 +104,28 @@
 #define ILI9341_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
 #define ILI9341_PINK        0xF81F
 
+
+typedef struct {
+	const unsigned char *index;
+	const unsigned char *unicode;
+	const unsigned char *data;
+	unsigned char version;
+	unsigned char reserved;
+	unsigned char index_first;
+	unsigned char index_last;
+	unsigned char bits_width;
+	unsigned char bits_height;
+	unsigned char bits_xoffset;
+	unsigned char bits_yoffset;
+	unsigned char bits_delta;
+	unsigned char bits_index;
+	unsigned char reserved2;
+	unsigned char reserved3;
+} ILI9341_t3_font_t;
+
+
+#ifdef __cplusplus
+
 class ILI9341_t3 : public Print
 {
   public:
@@ -153,24 +177,22 @@ class ILI9341_t3 : public Print
 	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 	int16_t getCursorX(void) const { return cursor_x; }
 	int16_t getCursorY(void) const { return cursor_y; }
+	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
+	void setFontAdafruit(void) { font = NULL; }
 
 
  protected:
-  int16_t
-    _width, _height, // Display w/h as modified by current rotation
-    cursor_x, cursor_y;
-  uint16_t
-    textcolor, textbgcolor;
-  uint8_t
-    textsize,
-    rotation;
-  boolean
-    wrap; // If set, 'wrap' text at right edge of display
+	int16_t _width, _height; // Display w/h as modified by current rotation
+	int16_t  cursor_x, cursor_y;
+	uint16_t textcolor, textbgcolor;
+	uint8_t textsize, rotation;
+	boolean wrap; // If set, 'wrap' text at right edge of display
+	const ILI9341_t3_font_t *font;
 
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
-    uint8_t _miso, _mosi, _sclk;
+	uint8_t _miso, _mosi, _sclk;
 
 	void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 	  __attribute__((always_inline)) {
@@ -293,7 +315,7 @@ private:
 	boolean currstate, laststate;
 };
 
-
+#endif // __cplusplus
 
 
 #endif

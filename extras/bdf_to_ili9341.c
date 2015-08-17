@@ -8,6 +8,10 @@
 #define ENCODING_START  32
 #define ENCODING_END    126
 
+char font_name[1024] = "myFont";
+//int ascii_art = 1; // ;-)
+int ascii_art = 0;  //  :-(
+
 typedef struct {
 	int width;
 	int height;
@@ -22,7 +26,11 @@ typedef struct {
 glyph_t glyphs[ENCODING_END+1];
 int bits_width, bits_height, bits_delta;
 int bits_xoffset, bits_yoffset, bits_index;
-
+int font_size = 0;
+int line_space = 0;
+int cap_height = 0;
+int is_bold = 0;
+int is_italic = 0;
 
 void parse_bdf(FILE *fp, glyph_t *g);
 void compute_min_max(void);
@@ -153,7 +161,7 @@ void output_glyph(const glyph_t *g)
 	int identical_count;
 
 	//printf("output glyph:");
-	print_glyph(g);
+	if (ascii_art) print_glyph(g);
 	output_number(0, 3); // reserved bits, intended to identify future formats
 	output_number(g->width, bits_width);
 	output_number(g->height, bits_height);
@@ -179,10 +187,9 @@ void output_glyph(const glyph_t *g)
 		y++;
 	}
 	output_pad_to_byte();
-	output_newline();
+	if (ascii_art) output_newline();
 }
 
-const char *font_name = "myFont";
 
 int main()
 {
@@ -198,7 +205,7 @@ int main()
 	for (g = glyphs + ENCODING_START; g <= glyphs + ENCODING_END; g++) {
 		g->byteoffset = output_state_bytecount;
 		output_glyph(g);
-		printf("// offset = %d\n", output_state_bytecount);
+		//printf("// offset = %d\n", output_state_bytecount);
 	}
 	printf("};\n");
 	datasize = output_state_bytecount;
@@ -214,27 +221,29 @@ int main()
 	printf("};\n");
 	indexsize = output_state_bytecount - datasize;
 	printf("/* font index size: %d bytes */\n\n", indexsize);
-
-	printf("/*\n");
-	printf("typedef struct {\n");
-	printf("\tconst unsigned char *index;\n");
-	printf("\tconst unsigned char *unicode;\n");
-	printf("\tconst unsigned char *data;\n");
-	printf("\tunsigned char version;\n");
-	printf("\tunsigned char reserved;\n");
-	printf("\tunsigned char index1_first;\n");
-	printf("\tunsigned char index1_last;\n");
-	printf("\tunsigned char index2_first;\n");
-	printf("\tunsigned char index2_last;\n");
-	printf("\tunsigned char bits_index;\n");
-	printf("\tunsigned char bits_width;\n");
-	printf("\tunsigned char bits_height;\n");
-	printf("\tunsigned char bits_xoffset;\n");
-	printf("\tunsigned char bits_yoffset;\n");
-	printf("\tunsigned char bits_delta;\n");
-	printf("} ILI9341_t3_font_t;\n");
-	printf("*/\n");
-
+	if (ascii_art) {
+		printf("/*\n");
+		printf("typedef struct {\n");
+		printf("\tconst unsigned char *index;\n");
+		printf("\tconst unsigned char *unicode;\n");
+		printf("\tconst unsigned char *data;\n");
+		printf("\tunsigned char version;\n");
+		printf("\tunsigned char reserved;\n");
+		printf("\tunsigned char index1_first;\n");
+		printf("\tunsigned char index1_last;\n");
+		printf("\tunsigned char index2_first;\n");
+		printf("\tunsigned char index2_last;\n");
+		printf("\tunsigned char bits_index;\n");
+		printf("\tunsigned char bits_width;\n");
+		printf("\tunsigned char bits_height;\n");
+		printf("\tunsigned char bits_xoffset;\n");
+		printf("\tunsigned char bits_yoffset;\n");
+		printf("\tunsigned char bits_delta;\n");
+		printf("\tunsigned char line_space;\n");
+		printf("\tunsigned char cap_height;\n");
+		printf("} ILI9341_t3_font_t;\n");
+		printf("*/\n");
+	}
 	printf("const ILI9341_t3_font_t %s = {\n", font_name);
 	printf("\t%s_index,\n", font_name);
 	printf("\t0,\n");
@@ -250,29 +259,28 @@ int main()
 	printf("\t%d,\n", bits_height);
 	printf("\t%d,\n", bits_xoffset);
 	printf("\t%d,\n", bits_yoffset);
-	printf("\t%d\n", bits_delta);
+	printf("\t%d,\n", bits_delta);
+	printf("\t%d,\n", line_space);
+	printf("\t%d\n",  cap_height);
 	printf("};\n");
 
+	printf("\n\n\n");
 	return 0;
 }
 
 
-
-
-
-
-
-
 void parse_bdf(FILE *fp, glyph_t *g)
 {
-	char line[1024];
+	char line[1024], name[1024], *src, *dst;
 	const char *p;
 	int state = 0, linenum = 0;
 	int found_encoding = -1, found_dwidth = -1, found_bbx = -1;
+	int found_ascent = 0, found_descent = 0;
 	int expect_lines, expect_bytes;
 	int encoding, dwidth_x, dwidth_y, bbx_width, bbx_height, bbx_xoffset, bbx_yoffset;
+	int size, font_ascent = 0, font_descent = 0;
 	uint8_t *data;
-	int i;
+	int i, j;
 
 	while (fgets(line, sizeof(line), fp)) {
 		linenum++;
@@ -283,6 +291,31 @@ void parse_bdf(FILE *fp, glyph_t *g)
 				found_dwidth = 0;
 				found_bbx = 0;
 				continue;
+			}
+			if (sscanf(line, "SIZE %d %d %d", &size, &i, &j) == 3) {
+				font_size = size;
+			}
+			if (sscanf(line, "FAMILY_NAME \"%[^\"]\"", name) == 1) {
+				//printf("// name = %s\n", name);
+				src = name;
+				dst = font_name;
+				while (*src) {
+					if (isalnum(*src)) *dst++ = *src;
+					src++;
+				}
+				*dst = 0;
+			}
+			if (strncmp(line, "WEIGHT_NAME \"Bold\"", 18) == 0) {
+				is_bold = 1;
+			}
+			if (strncmp(line, "SLANT \"I\"", 9) == 0) {
+				is_italic = 1;
+			}
+			if (sscanf(line, "FONT_ASCENT %d", &font_ascent) == 1) {
+				found_ascent = 1;
+			}
+			if (sscanf(line, "FONT_DESCENT %d", &font_descent) == 1) {
+				found_descent = 1;
 			}
 			if (sscanf(line, "ENCODING %d", &encoding) == 1) {
 				//printf("encoding %d\n", encoding);
@@ -352,6 +385,18 @@ void parse_bdf(FILE *fp, glyph_t *g)
 			}	
 		}
 	}
+	if (found_ascent && found_descent) {
+		line_space = font_ascent + font_descent;
+		//printf("// line_space = %d\n", line_space);
+	}
+	if (ENCODING_START <= 'E' && ENCODING_END >= 'E' && g['E'].data != NULL) {
+		cap_height = g['E'].height + g['E'].yoffset;
+		//printf("// cap_height = %d\n", cap_height);
+	}
+	sprintf(name, "_%d", font_size);
+	strcat(font_name, name);
+	if (is_bold) strcat(font_name, "_Bold");
+	if (is_italic) strcat(font_name, "_Italic");
 }
 
 static uint8_t hex1(const char c)

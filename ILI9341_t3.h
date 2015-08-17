@@ -121,6 +121,8 @@ typedef struct {
 	unsigned char bits_xoffset;
 	unsigned char bits_yoffset;
 	unsigned char bits_delta;
+	unsigned char line_space;
+	unsigned char cap_height;
 } ILI9341_t3_font_t;
 
 

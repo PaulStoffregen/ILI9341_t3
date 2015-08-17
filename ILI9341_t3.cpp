@@ -1006,9 +1006,6 @@ static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t requ
 	return (int32_t)val;
 }
 
-// TODO: these need to come from the font info....
-#define FONT_CAP_HEIGHT  18
-#define FONT_LINE_SPACE  24
 
 void ILI9341_t3::drawFontChar(unsigned int c)
 {
@@ -1066,16 +1063,13 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 		} else {
 			cursor_x = -xoffset;
 		}
-		cursor_y += FONT_LINE_SPACE;
+		cursor_y += font->line_space;
 	}
 	if (cursor_y >= _height) return;
 	cursor_x += delta;
 
 	// vertically, the top and/or bottom can be clipped
-	//int32_t origin_y = cursor_y + FONT_CAP_HEIGHT + yoffset;
-	//int32_t origin_y = cursor_y + FONT_CAP_HEIGHT;
-
-	int32_t origin_y = cursor_y + FONT_CAP_HEIGHT - height - yoffset;
+	int32_t origin_y = cursor_y + font->cap_height - height - yoffset;
 	//Serial.printf("  origin = %d,%d\n", origin_x, origin_y);
 
 

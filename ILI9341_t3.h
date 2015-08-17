@@ -111,16 +111,16 @@ typedef struct {
 	const unsigned char *data;
 	unsigned char version;
 	unsigned char reserved;
-	unsigned char index_first;
-	unsigned char index_last;
+	unsigned char index1_first;
+	unsigned char index1_last;
+	unsigned char index2_first;
+	unsigned char index2_last;
+	unsigned char bits_index;
 	unsigned char bits_width;
 	unsigned char bits_height;
 	unsigned char bits_xoffset;
 	unsigned char bits_yoffset;
 	unsigned char bits_delta;
-	unsigned char bits_index;
-	unsigned char reserved2;
-	unsigned char reserved3;
 } ILI9341_t3_font_t;
 
 
@@ -179,6 +179,7 @@ class ILI9341_t3 : public Print
 	int16_t getCursorY(void) const { return cursor_y; }
 	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
 	void setFontAdafruit(void) { font = NULL; }
+	void drawFontChar(unsigned int c);
 
 
  protected:
@@ -283,6 +284,7 @@ class ILI9341_t3 : public Print
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);
 	}
+	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
 };
 
 #ifndef swap

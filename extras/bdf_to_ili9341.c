@@ -225,6 +225,7 @@ int main()
 		output_glyph(g);
 		//printf("// offset = %d\n", output_state_bytecount);
 	}
+	output_newline();
 	printf("};\n");
 	datasize = output_state_bytecount;
 	printf("/* font data size: %d bytes */\n\n", datasize);

@@ -2,6 +2,7 @@
 
 $name = $ARGV[0];
 $name or die "Usage ./ttf_to_ili9341.pl <name>\n";
+-r $name.ttf or die "Can't read file $name.ttf\n";
 
 system "rm font_$name.c\n";
 open C, ">font_$name.c";

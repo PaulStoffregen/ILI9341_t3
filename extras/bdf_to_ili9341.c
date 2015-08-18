@@ -25,6 +25,8 @@
 #define ENCODING_START  32
 #define ENCODING_END    126
 
+//#define ENCODING_OFFSET 0xF000  // intended for Font-Awesome
+
 char font_name[1024] = "myFont";
 
 //int ascii_art = 1; // ;-)
@@ -339,6 +341,14 @@ void parse_bdf(FILE *fp, glyph_t *g)
 			if (sscanf(line, "ENCODING %d", &encoding) == 1) {
 				//printf("encoding %d\n", encoding);
 				found_encoding = 1;
+				#ifdef ENCODING_OFFSET
+				if (encoding >= ENCODING_OFFSET + ENCODING_START
+				  && encoding <= ENCODING_OFFSET + ENCODING_END) {
+					encoding -= ENCODING_OFFSET;
+				} else {
+					encoding = ENCODING_OFFSET + ENCODING_END + 1;
+				}
+				#endif
 				continue;
 			}
 			if (sscanf(line, "DWIDTH %d %d", &dwidth_x, &dwidth_y) == 2) {

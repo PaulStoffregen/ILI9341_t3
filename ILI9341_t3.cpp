@@ -1072,35 +1072,46 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 	int32_t origin_y = cursor_y + font->cap_height - height - yoffset;
 	//Serial.printf("  origin = %d,%d\n", origin_x, origin_y);
 
-
 	// TODO: compute top skip and number of lines
 	int32_t linecount = height;
-	uint32_t loopcount = 0;
+	//uint32_t loopcount = 0;
 	uint32_t y = origin_y;
 	while (linecount) {
 		//Serial.printf("    linecount = %d\n", linecount);
 		uint32_t b = fetchbit(data, bitoffset++);
 		if (b == 0) {
 			//Serial.println("    single line");
-			uint32_t bits = fetchbits_unsigned(data, bitoffset, width);
-			drawFontBits(bits, width, origin_x, y, 1);
-			bitoffset += width;
+			uint32_t x = 0;
+			do {
+				uint32_t xsize = width - x;
+				if (xsize > 32) xsize = 32;
+				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+				drawFontBits(bits, xsize, origin_x + x, y, 1);
+				bitoffset += xsize;
+				x += xsize;
+			} while (x < width);
 			y++;
 			linecount--;
 		} else {
 			uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
 			bitoffset += 3;
-			//Serial.printf("    multi line %d\n", n);
-			uint32_t bits = fetchbits_unsigned(data, bitoffset, width);
-			drawFontBits(bits, width, origin_x, y, n);
-			bitoffset += width;
+			uint32_t x = 0;
+			do {
+				uint32_t xsize = width - x;
+				if (xsize > 32) xsize = 32;
+				//Serial.printf("    multi line %d\n", n);
+				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+				drawFontBits(bits, xsize, origin_x + x, y, n);
+				bitoffset += xsize;
+				x += xsize;
+			} while (x < width);
 			y += n;
 			linecount -= n;
 		}
-		if (++loopcount > 100) {
+		//if (++loopcount > 100) {
 			//Serial.println("     abort draw loop");
-			break;
-		}
+			//break;
+		//}
 	}
 }
 
@@ -1108,6 +1119,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 {
 	// TODO: replace this *slow* code with something fast...
 	//Serial.printf("      %d bits at %d,%d: %X\n", numbits, x, y, bits);
+	if (bits == 0) return;
 	do {
 		uint32_t x1 = x;
 		uint32_t n = numbits;

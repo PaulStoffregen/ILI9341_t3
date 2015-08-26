@@ -1123,6 +1123,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 	do {
 		uint32_t x1 = x;
 		uint32_t n = numbits;
+#if 0		
 		do {
 			n--;
 			if (bits & (1 << n)) {
@@ -1131,6 +1132,23 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 			}
 			x1++;
 		} while (n > 0);
+#endif
+#if 1
+		int w = 0;
+		do {
+			n--;
+			if (bits & (1 << n)) {
+				w++;
+			}  
+			else if (w > 0) {
+				drawFastHLine(x1 - w, y, w, textcolor);
+				w = 0;
+			}
+						
+			x1++;
+		} while (n > 0);
+		if (w > 0) drawFastHLine(x1 - w, y, w, textcolor);
+#endif
 		y++;
 		repeat--;
 	} while (repeat);

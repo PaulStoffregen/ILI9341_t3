@@ -145,6 +145,9 @@ class ILI9341_t3 : public Print
 	void setTextColor(uint16_t c, uint16_t bg);
 	void setTextSize(uint8_t s);
 	void setTextWrap(boolean w);
+	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2)
+	  { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2;} ;
+	void setClipRect() { _clipx1 = 0; _clipy1 = 0; _clipx2 = _width; _clipy2 = _height; }
 	virtual size_t write(uint8_t);
 	int16_t width(void)  { return _width; }
 	int16_t height(void) { return _height; }
@@ -158,7 +161,8 @@ class ILI9341_t3 : public Print
  protected:
   int16_t
     _width, _height, // Display w/h as modified by current rotation
-    cursor_x, cursor_y;
+    cursor_x, cursor_y,
+    _clipx1, _clipy1, _clipx2, _clipy2;
   uint16_t
     textcolor, textbgcolor;
   uint8_t
@@ -245,18 +249,36 @@ class ILI9341_t3 : public Print
 	}
 	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	  __attribute__((always_inline)) {
+
+    // Rudimentary clipping
+    if((y < _clipy1) || (x >= _clipx2) || (y >= _clipy2)) return;
+    if(x<_clipx1) { w = w - (_clipx1 - w); x = _clipx1; }
+    if((x+w-1) >= _clipx2)  w = _clipx2-x;
+    if (w<1) return;
+
 		setAddr(x, y, x+w-1, y);
 		writecommand_cont(ILI9341_RAMWR);
 		do { writedata16_cont(color); } while (--w > 0);
 	}
 	void VLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	  __attribute__((always_inline)) {
+
+    // Rudimentary clipping
+    if((x < _clipx1) || (x >= _clipx2) || (y >= _clipy2)) return;
+    if(y < _clipy1) { h = h - (_clipy1 - y); y = _clipy1;}
+    if((y+h-1) >= _clipy2) h = _clipy2-y;
+    if(h<1) return;
+
+
 		setAddr(x, y, x, y+h-1);
 		writecommand_cont(ILI9341_RAMWR);
 		do { writedata16_cont(color); } while (--h > 0);
 	}
 	void Pixel(int16_t x, int16_t y, uint16_t color)
 	  __attribute__((always_inline)) {
+
+  	if((x < _clipx1) ||(x >= _clipx2) || (y < _clipy1) || (y >= _clipy2)) return;
+
 		setAddr(x, y, x, y);
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);

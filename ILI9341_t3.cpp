@@ -43,6 +43,7 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	textsize  = 1;
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
+	setClipRect();
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -62,7 +63,7 @@ void ILI9341_t3::pushColor(uint16_t color)
 
 void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
-	if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
+	if((x < _clipx1) ||(x >= _clipx2) || (y < _clipy1) || (y >= _clipy2)) return;
 
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y);
@@ -74,8 +75,11 @@ void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
 	// Rudimentary clipping
-	if((x >= _width) || (y >= _height)) return;
-	if((y+h-1) >= _height) h = _height-y;
+	if((x < _clipx1) || (x >= _clipx2) || (y >= _clipy2)) return;
+	if(y < _clipy1) { h = h - (_clipy1 - y); y = _clipy1;}
+	if((y+h-1) >= _clipy2) h = _clipy2-y;
+	if(h<1) return;
+
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
@@ -84,13 +88,17 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	}
 	writedata16_last(color);
 	SPI.endTransaction();
+
 }
 
 void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
 	// Rudimentary clipping
-	if((x >= _width) || (y >= _height)) return;
-	if((x+w-1) >= _width)  w = _width-x;
+	if((y < _clipy1) || (x >= _clipx2) || (y >= _clipy2)) return;
+  if(x<_clipx1) { w = w - (_clipx1 - w); x = _clipx1; }
+	if((x+w-1) >= _clipx2)  w = _clipx2-x;
+	if (w<1) return;
+
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y);
 	writecommand_cont(ILI9341_RAMWR);
@@ -103,16 +111,18 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 
 void ILI9341_t3::fillScreen(uint16_t color)
 {
-	fillRect(0, 0, _width, _height, color);
+	fillRect(_clipx1, _clipy1, _clipx2, _clipy2, color);
 }
 
 // fill a rectangle
 void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
 	// rudimentary clipping (drawChar w/big text requires this)
-	if((x >= _width) || (y >= _height)) return;
-	if((x + w - 1) >= _width)  w = _width  - x;
-	if((y + h - 1) >= _height) h = _height - y;
+	if((x >= _clipx2) || (y >= _clipy2)) return;
+	if((x + w - 1) >= _clipx2)  w = _clipx2  - x;
+	if((y + h - 1) >= _clipy2) h = _clipy2 - y;
+  if(x < _clipx1) x = _clipx1;
+  if(y < _clipy1) y = _clipy1;
 
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
@@ -165,6 +175,7 @@ void ILI9341_t3::setRotation(uint8_t m)
 		_height = ILI9341_TFTWIDTH;
 		break;
 	}
+	setClipRect();
 }
 
 
@@ -190,21 +201,21 @@ uint8_t ILI9341_t3::readdata(void)
        // First wait until output queue is empty
         uint16_t wTimeout = 0xffff;
         while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
-        
+
 //       	KINETISK_SPI0.MCR |= SPI_MCR_CLR_RXF; // discard any received data
 //		KINETISK_SPI0.SR = SPI_SR_TCF;
-        
-        // Transfer a 0 out... 
-        writedata8_cont(0);   
-        
-        // Now wait until completed. 
+
+        // Transfer a 0 out...
+        writedata8_cont(0);
+
+        // Now wait until completed.
         wTimeout = 0xffff;
         while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
         r = KINETISK_SPI0.POPR;  // get the received byte... should check for it first...
     return r;
 }
  */
- 
+
 
 uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 {
@@ -213,7 +224,7 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 
     SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
     while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
-    
+
     // Make sure the last frame has been sent...
     KINETISK_SPI0.SR = SPI_SR_TCF;   // dlear it out;
     wTimeout = 0xffff;
@@ -224,7 +235,7 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
         r = KINETISK_SPI0.POPR;
     }
-    
+
     //writecommand(0xD9); // sekret command
 	KINETISK_SPI0.PUSHR = 0xD9 | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
 //	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
@@ -240,8 +251,8 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     // readdata
 	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
 //	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-        
-    // Now wait until completed. 
+
+    // Now wait until completed.
     wTimeout = 0xffff;
     while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
 
@@ -295,7 +306,7 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 }
 
 // Now lets see if we can read in multiple pixels
-void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) 
+void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors)
 {
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
@@ -309,7 +320,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT | SPI_PUSHR_EOQ;
 	while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
 	KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
-	while ((KINETISK_SPI0.SR & 0xf0)) { 
+	while ((KINETISK_SPI0.SR & 0xf0)) {
 		dummy = KINETISK_SPI0.POPR;	// Read a DUMMY byte but only once
 	}
 	c *= 3; // number of bytes we will transmit to the display
@@ -332,7 +343,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 			b = KINETISK_SPI0.POPR;		// Read a BLUE byte of GRAM
 			*pcolors++ = color565(r,g,b);
 		}
-        
+
 		// like waitFiroNotFull but does not pop our return queue
 		while ((KINETISK_SPI0.SR & (15 << 12)) > (3 << 12)) ;
 	}
@@ -340,7 +351,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 }
 
 // Now lets see if we can writemultiple pixels
-void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) 
+void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors)
 {
    	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
@@ -434,7 +445,7 @@ void ILI9341_t3::begin(void)
 	writecommand_last(ILI9341_SLPOUT);    // Exit Sleep
 	SPI.endTransaction();
 
-	delay(120); 		
+	delay(120);
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writecommand_last(ILI9341_DISPON);    // Display on
 	SPI.endTransaction();
@@ -451,7 +462,7 @@ paired with a hardware-specific library for each display device we carry
 
 Adafruit invests time and resources providing this open source code, please
 support Adafruit & open-source hardware by purchasing products from Adafruit!
- 
+
 Copyright (c) 2013 Adafruit Industries.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -501,7 +512,7 @@ void ILI9341_t3::drawCircle(int16_t x0, int16_t y0, int16_t r,
     x++;
     ddF_x += 2;
     f += ddF_x;
-  
+
     drawPixel(x0 + x, y0 + y, color);
     drawPixel(x0 - x, y0 + y, color);
     drawPixel(x0 + x, y0 - y, color);
@@ -533,7 +544,7 @@ void ILI9341_t3::drawCircleHelper( int16_t x0, int16_t y0,
     if (cornername & 0x4) {
       drawPixel(x0 + x, y0 + y, color);
       drawPixel(x0 + y, y0 + x, color);
-    } 
+    }
     if (cornername & 0x2) {
       drawPixel(x0 + x, y0 - y, color);
       drawPixel(x0 + y, y0 - x, color);
@@ -825,9 +836,9 @@ size_t ILI9341_t3::write(uint8_t c) {
   } else {
     drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
     cursor_x += textsize*6;
-    if (wrap && (cursor_x > (_width - textsize*6))) {
+    if (wrap && (cursor_x > (_clipx2 - textsize*6))) {
       cursor_y += textsize*8;
-      cursor_x = 0;
+      cursor_x = _clipx1;
     }
   }
   return 1;
@@ -837,14 +848,9 @@ size_t ILI9341_t3::write(uint8_t c) {
 void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			    uint16_t fgcolor, uint16_t bgcolor, uint8_t size)
 {
-	if((x >= _width)            || // Clip right
-	   (y >= _height)           || // Clip bottom
-	   ((x + 6 * size - 1) < 0) || // Clip left  TODO: is this correct?
-	   ((y + 8 * size - 1) < 0))   // Clip top   TODO: is this correct?
-		return;
-
 	if (fgcolor == bgcolor) {
 		// This transparent approach is only about 20% faster
+		// Don't need to clip here since the called rendering primitives all clip
 		if (size == 1) {
 			uint8_t mask = 0x01;
 			int16_t xoff, yoff;
@@ -926,6 +932,13 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			}
 		}
 	} else {
+    // Rudimentary clipping
+    if((x >= _clipx2)            || // Clip right
+       (y >= _clipy2)           || // Clip bottom
+       ((x + 6 * size - 1) < _clipx1) || // Clip left  TODO: this is not correct
+       ((y + 8 * size - 1) < _clipy1))   // Clip top   TODO: this is not correct
+      return;
+
 		// This solid background approach is about 5 time faster
 		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 		setAddr(x, y, x + 6 * size - 1, y + 8 * size - 1);
@@ -966,14 +979,14 @@ void ILI9341_t3::setTextSize(uint8_t s) {
 }
 
 void ILI9341_t3::setTextColor(uint16_t c) {
-  // For 'transparent' background, we'll set the bg 
+  // For 'transparent' background, we'll set the bg
   // to the same as fg instead of using a flag
   textcolor = textbgcolor = c;
 }
 
 void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
   textcolor   = c;
-  textbgcolor = b; 
+  textbgcolor = b;
 }
 
 void ILI9341_t3::setTextWrap(boolean w) {

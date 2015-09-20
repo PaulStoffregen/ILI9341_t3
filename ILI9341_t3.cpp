@@ -1020,6 +1020,62 @@ static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t requ
 }
 
 
+// measure the size of a character
+void ILI9341_t3::measureChar(unsigned char c, uint16_t* w, uint16_t* h) {
+	if (font) {
+		*h = font->cap_height;
+		*w = 0;
+
+		uint32_t bitoffset;
+		const uint8_t *data;
+
+		if (c >= font->index1_first && c <= font->index1_last) {
+			bitoffset = c - font->index1_first;
+			bitoffset *= font->bits_index;
+		} else if (c >= font->index2_first && c <= font->index2_last) {
+			bitoffset = c - font->index2_first + font->index1_last - font->index1_first + 1;
+			bitoffset *= font->bits_index;
+		} else if (font->unicode) {
+			return; // TODO: implement sparse unicode
+		} else {
+			return;
+		}
+
+		data = font->data + fetchbits_unsigned(font->index, bitoffset, font->bits_index);
+
+		uint32_t encoding = fetchbits_unsigned(data, 0, 3);
+
+		if (encoding != 0) return;
+
+		//uint32_t width =
+		fetchbits_unsigned(data, 3, font->bits_width);
+		bitoffset = font->bits_width + 3;
+
+		//uint32_t height =
+		fetchbits_unsigned(data, bitoffset, font->bits_height);
+		bitoffset += font->bits_height;
+
+		//int32_t xoffset =
+		fetchbits_signed(data, bitoffset, font->bits_xoffset);
+		bitoffset += font->bits_xoffset;
+
+		//int32_t yoffset =
+		fetchbits_signed(data, bitoffset, font->bits_yoffset);
+		bitoffset += font->bits_yoffset;
+
+		uint32_t delta = fetchbits_unsigned(data, bitoffset, font->bits_delta);
+		*w = delta;
+	} else {
+		*w = 6 * textsize;
+		*h = 8 * textsize;
+	}
+
+}
+
+uint16_t ILI9341_t3::fontHeight() {
+	return font->cap_height;
+}
+
 void ILI9341_t3::drawFontChar(unsigned int c)
 {
 	uint32_t bitoffset;

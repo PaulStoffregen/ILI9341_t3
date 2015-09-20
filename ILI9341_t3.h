@@ -187,6 +187,7 @@ class ILI9341_t3 : public Print
 	void drawFontChar(unsigned int c);
 	void measureChar(uint8_t c, uint16_t* w, uint16_t* h);
 	uint16_t fontHeight();
+  uint16_t fontLineSpacing();
 
  protected:
 	int16_t _width, _height; // Display w/h as modified by current rotation

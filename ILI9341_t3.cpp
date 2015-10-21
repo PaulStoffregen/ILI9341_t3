@@ -1167,6 +1167,10 @@ void ILI9341_t3::setTextSize(uint8_t s) {
   textsize = (s > 0) ? s : 1;
 }
 
+uint8_t ILI9341_t3::getTextSize() {
+	return textsize;
+}
+
 void ILI9341_t3::setTextColor(uint16_t c) {
   // For 'transparent' background, we'll set the bg 
   // to the same as fg instead of using a flag
@@ -1180,6 +1184,11 @@ void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
 
 void ILI9341_t3::setTextWrap(boolean w) {
   wrap = w;
+}
+
+boolean ILI9341_t3::getTextWrap()
+{
+	return wrap;
 }
 
 uint8_t ILI9341_t3::getRotation(void) {

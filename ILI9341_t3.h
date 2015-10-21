@@ -170,7 +170,9 @@ class ILI9341_t3 : public Print
 	void setTextColor(uint16_t c);
 	void setTextColor(uint16_t c, uint16_t bg);
 	void setTextSize(uint8_t s);
+	uint8_t getTextSize();
 	void setTextWrap(boolean w);
+	boolean getTextWrap();
 	virtual size_t write(uint8_t);
 	int16_t width(void)  { return _width; }
 	int16_t height(void) { return _height; }

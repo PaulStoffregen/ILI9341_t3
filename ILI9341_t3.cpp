@@ -831,6 +831,61 @@ void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
   }
 }
 
+void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
+			      const uint8_t *bitmap, int16_t w, int16_t h,
+			      uint16_t color, uint16_t bgcolor) {
+
+  int16_t i, j, byteWidth = (w + 7) / 8;
+// todo: optimize this with a single transaction
+  for(j=0; j<h; j++) {
+    for(i=0; i<w; i++ ) {
+      if(pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
+		  	drawPixel(x+i, y+j, color);
+      } else {
+      	drawPixel(x+i, y+j, bgcolor);
+      }
+    }
+  }
+}
+
+// converts rgb 332 to rgb 565
+uint16_t conv8to16(uint8_t x) {
+	uint16_t r,g,b;
+	r = x>>5;
+	g = (x&0x1c)>2;
+	b = x&0x03;
+	return (((r<<13) + (r<<10))&0xf800) + (g<<8) + (g<<5) + (b<<3) + (b<<1) + (b>>1);
+}
+
+void ILI9341_t3::draw8Bitmap(int16_t x, int16_t y,
+			      const uint8_t *byteMap, int16_t w, int16_t h) {
+
+  int16_t i, j;
+
+  for(j=0; j<h; j++) {
+    for(i=0; i<w; i++ ) {
+      drawPixel(x+i, y+j, conv8to16(byteMap[j*w+i]));
+    }
+  }
+}
+
+void ILI9341_t3::draw8Bitmap(int16_t x, int16_t y,
+			      const uint8_t *byteMap, int16_t w, int16_t h,
+			      uint8_t transparent) {
+
+  int16_t i, j;
+
+  for(j=0; j<h; j++) {
+    for(i=0; i<w; i++ ) {
+    	uint8_t eightBit = byteMap[j*w+i];
+    	if (eightBit != transparent) {
+	      drawPixel(x+i, y+j, conv8to16(eightBit));
+      }
+    }
+  }
+}
+
+
 size_t ILI9341_t3::write(uint8_t c)
 {
 	if (font) {

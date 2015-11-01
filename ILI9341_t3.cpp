@@ -280,7 +280,7 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
@@ -1383,6 +1383,10 @@ void ILI9341_t3::setTextSize(uint8_t s) {
   textsize = (s > 0) ? s : 1;
 }
 
+uint8_t ILI9341_t3::getTextSize() {
+	return textsize;
+}
+
 void ILI9341_t3::setTextColor(uint16_t c) {
   // For 'transparent' background, we'll set the bg
   // to the same as fg instead of using a flag
@@ -1396,6 +1400,11 @@ void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
 
 void ILI9341_t3::setTextWrap(boolean w) {
 	wrap = w;
+}
+
+boolean ILI9341_t3::getTextWrap()
+{
+	return wrap;
 }
 
 uint8_t ILI9341_t3::getRotation(void) {

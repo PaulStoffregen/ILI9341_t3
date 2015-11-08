@@ -126,6 +126,10 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 			writedata16_cont(color);
 		}
 		writedata16_last(color);
+		if (y > 1 && (y & 1)) {
+			SPI.endTransaction();
+			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		}
 	}
 	SPI.endTransaction();
 }

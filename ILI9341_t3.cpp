@@ -96,7 +96,7 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
 	// Rudimentary clipping
 	if((y < _clipy1) || (x >= _clipx2) || (y >= _clipy2)) return;
-	if(x<_clipx1) { w = w - (_clipx1 - w); x = _clipx1; }
+	if(x<_clipx1) { w = w - (_clipx1 - x); x = _clipx1; }
 	if((x+w-1) >= _clipx2)  w = _clipx2-x;
 	if (w<1) return;
 

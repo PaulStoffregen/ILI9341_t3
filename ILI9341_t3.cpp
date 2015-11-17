@@ -1131,14 +1131,6 @@ void ILI9341_t3::measureChar(unsigned char c, uint16_t* w, uint16_t* h) {
 
 }
 
-uint16_t ILI9341_t3::fontHeight() {
-	return font->cap_height;
-}
-
-uint16_t ILI9341_t3::fontLineSpacing() {
-	return font->line_space - font->cap_height;
-}
-
 void ILI9341_t3::drawFontChar(unsigned int c)
 {
 	uint32_t bitoffset;

@@ -53,9 +53,10 @@
 #define ILI9341_RAMWR   0x2C
 #define ILI9341_RAMRD   0x2E
 
-#define ILI9341_PTLAR   0x30
-#define ILI9341_MADCTL  0x36
-#define ILI9341_PIXFMT  0x3A
+#define ILI9341_PTLAR    0x30
+#define ILI9341_MADCTL   0x36
+#define ILI9341_VSCRSADD 0x37
+#define ILI9341_PIXFMT   0x3A
 
 #define ILI9341_FRMCTR1 0xB1
 #define ILI9341_FRMCTR2 0xB2
@@ -140,6 +141,7 @@ class ILI9341_t3 : public Print
 	void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
 	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 	void setRotation(uint8_t r);
+	void setScroll(uint16_t offset);
 	void invertDisplay(boolean i);
 	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 	// Pass 8-bit (each) R,G,B, get back 16-bit packed color

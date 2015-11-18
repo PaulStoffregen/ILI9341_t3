@@ -1209,7 +1209,7 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 		fillRect(cursor_x-delta,cursor_y,delta,header, textbgcolor);
 
 		// clear below character
-		fillRect(cursor_x-delta,origin_y+height,delta, yoffset+1, textbgcolor);
+		fillRect(cursor_x-delta,origin_y+height,delta, font->line_space - (height + header), textbgcolor);
 	}
 	while (linecount) {
 		//Serial.printf("    linecount = %d\n", linecount);

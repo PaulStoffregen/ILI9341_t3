@@ -138,7 +138,9 @@ class ILI9341_t3 : public Print
 	void fillScreen(uint16_t color);
 	void drawPixel(int16_t x, int16_t y, uint16_t color);
 	void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+	void drawFastVLineFromBuffer(int16_t x, int16_t y, int16_t h, const uint16_t *colors);
 	void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+	void drawFastHLineFromBuffer(int16_t x, int16_t y, int16_t w, const uint16_t *colors);
 	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 	void setRotation(uint8_t r);
 	void setScroll(uint16_t offset);

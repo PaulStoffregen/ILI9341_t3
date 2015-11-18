@@ -185,6 +185,13 @@ void ILI9341_t3::setRotation(uint8_t m)
 	cursor_y = 0;
 }
 
+void ILI9341_t3::setScroll(uint16_t offset)
+{
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	writecommand_cont(ILI9341_VSCRSADD);
+	writedata16_last(offset);
+	SPI.endTransaction();
+}
 
 void ILI9341_t3::invertDisplay(boolean i)
 {

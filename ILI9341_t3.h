@@ -197,6 +197,11 @@ class ILI9341_t3 : public Print
   uint16_t fontLineSpace() { return font->line_space; }
   uint16_t fontGap() { return font->line_space - font->cap_height; };
 
+  void drawText(const char* text, const char* wrapChars = nullptr);
+  const char* lineBreakChars = " -";
+  uint16_t measureTextWidth(const char* text);
+  uint16_t measureTextHeight(const char* text);
+
  protected:
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;

@@ -1410,6 +1410,87 @@ boolean ILI9341_t3::getTextWrap()
 	return wrap;
 }
 
+
+void ILI9341_t3::drawText(const char* text, const char* wrapChars) {
+
+    if (!wrapChars) {
+      int16_t origx = cursor_x;
+
+      int i = 0;
+      while (text[i] != 0) {
+        write(text[i]);
+
+        // don't wrap to the left, wrap to the original spot
+        if (wrap && text[i] == '\n') {
+          cursor_x = origx;
+          cursor_y += fontLineSpace();
+        }
+        i++;
+      }
+    } else {
+    int i = 0;
+
+    int16_t left = getCursorX();
+    int16_t right = _clipx2;
+    int textlen = strlen(text);
+    while (i < textlen) {
+      int16_t x = getCursorX();
+      char curWord[20];
+      const char* curPos = text+i;
+
+      int j = 0;
+      const char* nextWord = curPos + strlen(curPos);
+      while (wrapChars[j]) {
+        const char* nextWrapChar = strchr(curPos, wrapChars[j]);
+        if (nextWrapChar) {
+          nextWord = min(nextWord, nextWrapChar);
+        }
+        j++;
+      }
+
+      int wordLen = nextWord - curPos + 1;
+
+      strncpy(curWord, curPos, wordLen);
+      curWord[wordLen] = 0;
+
+      if (x+measureTextWidth(curWord) > right) {
+        setCursor(left, getCursorY()+fontLineSpace());
+      }
+
+      drawText(curWord);
+      i+=wordLen;
+    }
+  }
+}
+
+uint16_t ILI9341_t3::measureTextWidth(const char* text) {
+  uint16_t maxH = 0;
+  uint16_t currH = 0;
+  for (const char* i = text; *i != 0; i++) {
+    if (*i == '\n') {
+      if (currH > maxH)
+        maxH = currH;
+      currH = 0;
+    } else {
+      uint16_t h, w;
+      measureChar(*i, &w, &h);
+      currH += w;
+    }
+  }
+  uint16_t h = maxH > currH ? maxH : currH;
+  return h;
+}
+
+uint16_t ILI9341_t3::measureTextHeight(const char* text) {
+  int lines = 1;
+  for (const char* i = text; *i != 0; i++) {
+    if (*i == '\n') {
+      lines++;
+    }
+  }
+  return ((lines-1) * fontLineSpace() + fontCapHeight());
+}
+
 uint8_t ILI9341_t3::getRotation(void) {
 	return rotation;
 }

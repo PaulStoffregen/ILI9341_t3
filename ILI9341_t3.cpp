@@ -1435,7 +1435,7 @@ void ILI9341_t3::drawText(const char* text, const char* wrapChars) {
     int textlen = strlen(text);
     while (i < textlen) {
       int16_t x = getCursorX();
-      char curWord[20];
+
       const char* curPos = text+i;
 
       int j = 0;
@@ -1450,6 +1450,7 @@ void ILI9341_t3::drawText(const char* text, const char* wrapChars) {
 
       int wordLen = nextWord - curPos + 1;
 
+      char curWord[wordLen+1];
       strncpy(curWord, curPos, wordLen);
       curWord[wordLen] = 0;
 

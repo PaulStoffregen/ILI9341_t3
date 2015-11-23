@@ -1209,12 +1209,14 @@ uint8_t ILI9341_t3::getRotation(void) {
 void ILI9341_t3::sleep(bool enable) {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0)); 
 	if (enable) {
-			writecommand_last(ILI9341_SLPIN);
+		writecommand_cont(ILI9341_DISPOFF);		
+		writecommand_last(ILI9341_SLPIN);	
 		  SPI.endTransaction();
 	} else {
-			writecommand_last(ILI9341_SLPOUT);
-			SPI.endTransaction();
-			delay(5);
+		writecommand_cont(ILI9341_DISPON);
+		writecommand_last(ILI9341_SLPOUT);
+		SPI.endTransaction();
+		delay(5);
 	}
 } 
 

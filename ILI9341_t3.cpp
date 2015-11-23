@@ -1206,6 +1206,18 @@ uint8_t ILI9341_t3::getRotation(void) {
   return rotation;
 }
 
+void ILI9341_t3::sleep(bool enable) {
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0)); 
+	if (enable) {
+			writecommand_last(ILI9341_SLPIN);
+		  SPI.endTransaction();
+	} else {
+			writecommand_last(ILI9341_SLPOUT);
+			SPI.endTransaction();
+			delay(5);
+	}
+} 
+
 void Adafruit_GFX_Button::initButton(ILI9341_t3 *gfx,
 	int16_t x, int16_t y, uint8_t w, uint8_t h,
 	uint16_t outline, uint16_t fill, uint16_t textcolor,

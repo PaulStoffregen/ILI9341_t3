@@ -19,7 +19,9 @@
 #ifndef _ILI9341_t3H_
 #define _ILI9341_t3H_
 
+#ifdef __cplusplus
 #include "Arduino.h"
+#endif
 
 #define ILI9341_TFTWIDTH  240
 #define ILI9341_TFTHEIGHT 320
@@ -82,15 +84,49 @@
 */
 
 // Color definitions
-#define	ILI9341_BLACK   0x0000
-#define	ILI9341_BLUE    0x001F
-#define	ILI9341_RED     0xF800
-#define	ILI9341_GREEN   0x07E0
-#define ILI9341_CYAN    0x07FF
-#define ILI9341_MAGENTA 0xF81F
-#define ILI9341_YELLOW  0xFFE0
-#define ILI9341_WHITE   0xFFFF
+#define ILI9341_BLACK       0x0000      /*   0,   0,   0 */
+#define ILI9341_NAVY        0x000F      /*   0,   0, 128 */
+#define ILI9341_DARKGREEN   0x03E0      /*   0, 128,   0 */
+#define ILI9341_DARKCYAN    0x03EF      /*   0, 128, 128 */
+#define ILI9341_MAROON      0x7800      /* 128,   0,   0 */
+#define ILI9341_PURPLE      0x780F      /* 128,   0, 128 */
+#define ILI9341_OLIVE       0x7BE0      /* 128, 128,   0 */
+#define ILI9341_LIGHTGREY   0xC618      /* 192, 192, 192 */
+#define ILI9341_DARKGREY    0x7BEF      /* 128, 128, 128 */
+#define ILI9341_BLUE        0x001F      /*   0,   0, 255 */
+#define ILI9341_GREEN       0x07E0      /*   0, 255,   0 */
+#define ILI9341_CYAN        0x07FF      /*   0, 255, 255 */
+#define ILI9341_RED         0xF800      /* 255,   0,   0 */
+#define ILI9341_MAGENTA     0xF81F      /* 255,   0, 255 */
+#define ILI9341_YELLOW      0xFFE0      /* 255, 255,   0 */
+#define ILI9341_WHITE       0xFFFF      /* 255, 255, 255 */
+#define ILI9341_ORANGE      0xFD20      /* 255, 165,   0 */
+#define ILI9341_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
+#define ILI9341_PINK        0xF81F
 
+
+typedef struct {
+	const unsigned char *index;
+	const unsigned char *unicode;
+	const unsigned char *data;
+	unsigned char version;
+	unsigned char reserved;
+	unsigned char index1_first;
+	unsigned char index1_last;
+	unsigned char index2_first;
+	unsigned char index2_last;
+	unsigned char bits_index;
+	unsigned char bits_width;
+	unsigned char bits_height;
+	unsigned char bits_xoffset;
+	unsigned char bits_yoffset;
+	unsigned char bits_delta;
+	unsigned char line_space;
+	unsigned char cap_height;
+} ILI9341_t3_font_t;
+
+
+#ifdef __cplusplus
 
 class ILI9341_t3 : public Print
 {
@@ -116,8 +152,8 @@ class ILI9341_t3 : public Print
 
 	// Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);
-    void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
-    void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+	void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+	void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
 
 	// from Adafruit_GFX.h
 	void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
@@ -134,46 +170,40 @@ class ILI9341_t3 : public Print
 	void setTextColor(uint16_t c);
 	void setTextColor(uint16_t c, uint16_t bg);
 	void setTextSize(uint8_t s);
+	uint8_t getTextSize();
 	void setTextWrap(boolean w);
+	boolean getTextWrap();
 	virtual size_t write(uint8_t);
 	int16_t width(void)  { return _width; }
 	int16_t height(void) { return _height; }
-	int16_t getCursor_x(void);
-	int16_t getCursor_y(void);
 	uint8_t getRotation(void);
-	uint8_t getTextSize(void) { return textsize; }
 	void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
-	
-	//VMH Added scroll methods
-	void setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	int16_t getCursorX(void) const { return cursor_x; }
+	int16_t getCursorY(void) const { return cursor_y; }
+	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
+	void setFontAdafruit(void) { font = NULL; }
+	void drawFontChar(unsigned int c);
+	void setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h);
+	void setScrollBackgroundColor(uint16_t color);
 	void enableScroll(void);
 	void disableScroll(void);
-	void scrollTextArea(void);
-	boolean getWrtInsTextArea(void) {return wrtInsTextArea;}
+	void scrollTextArea(uint8_t scrollSize);
 
 
  protected:
-  int16_t
-    _width, _height, // Display w/h as modified by current rotation
-    cursor_x, cursor_y,
-	scroll_x, scroll_y,
-	scroll_width, scroll_height;
-  uint16_t
-    textcolor, textbgcolor, scrollbgcolor;
-  uint8_t
-    textsize,
-    rotation;
-  boolean
-    wrap, // If set, 'wrap' text at right edge of display
-	scrollEnable,
-	wrtInsTextArea; // Is it writing inside of the text area?
+	int16_t _width, _height; // Display w/h as modified by current rotation
+	int16_t  cursor_x, cursor_y;
+	int16_t scroll_x, scroll_y, scroll_width, scroll_height;
+	uint16_t textcolor, textbgcolor, scrollbgcolor;
+	uint8_t textsize, rotation;
+	boolean wrap, scrollEnable,isWritingScrollArea; // If set, 'wrap' text at right edge of display
+	const ILI9341_t3_font_t *font;
 
-  private:
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
-    uint8_t _miso, _mosi, _sclk;
+	uint8_t _miso, _mosi, _sclk;
 
 	void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 	  __attribute__((always_inline)) {
@@ -193,7 +223,6 @@ class ILI9341_t3 : public Print
 			if (sr & 0xF0) tmp = KINETISK_SPI0.POPR;  // drain RX FIFO
 		} while ((sr & (15 << 12)) > (3 << 12));
 	}
-	//void waitFifoEmpty(void) __attribute__((always_inline)) {
 	void waitFifoEmpty(void) {
 		uint32_t sr;
 		uint32_t tmp __attribute__((unused));
@@ -203,8 +232,8 @@ class ILI9341_t3 : public Print
 		} while ((sr & 0xF0F0) > 0);             // wait both RX & TX empty
 	}
 	void waitTransmitComplete(void) __attribute__((always_inline)) {
-		while (!(KINETISK_SPI0.SR & SPI_SR_TCF)) ; // wait until final output done
 		uint32_t tmp __attribute__((unused));
+		while (!(KINETISK_SPI0.SR & SPI_SR_TCF)) ; // wait until final output done
 		tmp = KINETISK_SPI0.POPR;                  // drain the final RX FIFO word
 	}
 	void waitTransmitComplete(uint32_t mcr) __attribute__((always_inline)) {
@@ -265,13 +294,40 @@ class ILI9341_t3 : public Print
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);
 	}
-
-
-
+	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
 };
 
 #ifndef swap
 #define swap(a, b) { typeof(a) t = a; a = b; b = t; }
 #endif
+
+class Adafruit_GFX_Button {
+public:
+	Adafruit_GFX_Button(void) { _gfx = NULL; }
+	void initButton(ILI9341_t3 *gfx, int16_t x, int16_t y,
+		uint8_t w, uint8_t h,
+		uint16_t outline, uint16_t fill, uint16_t textcolor,
+		const char *label, uint8_t textsize);
+	void drawButton(bool inverted = false);
+	bool contains(int16_t x, int16_t y);
+	void press(boolean p) {
+		laststate = currstate;
+		currstate = p;
+	}
+	bool isPressed() { return currstate; }
+	bool justPressed() { return (currstate && !laststate); }
+	bool justReleased() { return (!currstate && laststate); }
+private:
+	ILI9341_t3 *_gfx;
+	int16_t _x, _y;
+	uint16_t _w, _h;
+	uint8_t _textsize;
+	uint16_t _outlinecolor, _fillcolor, _textcolor;
+	char _label[10];
+	boolean currstate, laststate;
+};
+
+#endif // __cplusplus
+
 
 #endif

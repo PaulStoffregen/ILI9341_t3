@@ -33,9 +33,9 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	_cs   = cs;
 	_dc   = dc;
 	_rst  = rst;
-    _mosi = mosi;
-    _sclk = sclk;
-    _miso = miso;
+	_mosi = mosi;
+	_sclk = sclk;
+	_miso = miso;
 	_width    = WIDTH;
 	_height   = HEIGHT;
 	rotation  = 0;
@@ -43,7 +43,7 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	textsize  = 1;
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
-	scrollEnable = false;
+	font      = NULL;
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -126,6 +126,10 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 			writedata16_cont(color);
 		}
 		writedata16_last(color);
+		if (y > 1 && (y & 1)) {
+			SPI.endTransaction();
+			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		}
 	}
 	SPI.endTransaction();
 }
@@ -166,6 +170,8 @@ void ILI9341_t3::setRotation(uint8_t m)
 		_height = ILI9341_TFTWIDTH;
 		break;
 	}
+	cursor_x = 0;
+	cursor_y = 0;
 }
 
 
@@ -190,18 +196,18 @@ uint8_t ILI9341_t3::readdata(void)
        // Try to work directly with SPI registers...
        // First wait until output queue is empty
         uint16_t wTimeout = 0xffff;
-        while (((SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
+        while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
         
-//       	SPI0_MCR |= SPI_MCR_CLR_RXF; // discard any received data
-//		SPI0_SR = SPI_SR_TCF;
+//       	KINETISK_SPI0.MCR |= SPI_MCR_CLR_RXF; // discard any received data
+//		KINETISK_SPI0.SR = SPI_SR_TCF;
         
         // Transfer a 0 out... 
         writedata8_cont(0);   
         
         // Now wait until completed. 
         wTimeout = 0xffff;
-        while (((SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
-        r = SPI0.POPR;  // get the received byte... should check for it first...
+        while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
+        r = KINETISK_SPI0.POPR;  // get the received byte... should check for it first...
     return r;
 }
  */
@@ -267,7 +273,7 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
@@ -477,7 +483,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "glcdfont.c"
+//#include "glcdfont.c"
+extern "C" const unsigned char glcdfont[];
 
 // Draw a circle outline
 void ILI9341_t3::drawCircle(int16_t x0, int16_t y0, int16_t r,
@@ -817,30 +824,49 @@ void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
   }
 }
 
-size_t ILI9341_t3::write(uint8_t c) {
-  if (c == '\n') {
-    cursor_y += textsize*8;
-    cursor_x  = 0;
-  } else if (c == '\r') {
-    // skip em
-  } else {
-	if(scrollEnable && wrtInsTextArea && (cursor_y > (scroll_y+scroll_height - textsize*8))){
-		scrollTextArea();
-		cursor_y -= textsize*8;
-		cursor_x = 0;
-	} 
-    drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
-    cursor_x += textsize*6;
-    if(wrap && scrollEnable && wrtInsTextArea && (cursor_x > (scroll_x+scroll_width - textsize*6))){
-    	cursor_y += textsize*8;
-		cursor_x = 0;
-    }
-    else if (wrap && (cursor_x > (_width - textsize*6))) {
-		cursor_y += textsize*8;
-		cursor_x = 0;
-    }
-  }
-  return 1;
+size_t ILI9341_t3::write(uint8_t c)
+{
+	if (font) {
+		if (c == '\n') {
+			cursor_y += font->line_space;
+			if(scrollEnable && isWritingScrollArea){
+				cursor_x  = scroll_x;
+			}else{
+				cursor_x  = 0;
+			}
+		} else {
+			drawFontChar(c);
+		}
+	} else {
+		if (c == '\n') {
+			cursor_y += textsize*8;
+			if(scrollEnable && isWritingScrollArea){
+				cursor_x  = scroll_x;
+			}else{
+				cursor_x  = 0;
+			}
+		} else if (c == '\r') {
+			// skip em
+		} else {
+			if(scrollEnable && isWritingScrollArea && (cursor_y > (scroll_y+scroll_height - textsize*8))){
+				scrollTextArea(textsize*8);
+				cursor_y -= textsize*8;
+				cursor_x = scroll_x;
+			}
+			drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+			cursor_x += textsize*6;
+			if(wrap && scrollEnable && isWritingScrollArea && (cursor_x > (scroll_x+scroll_width - textsize*6))){
+				cursor_y += textsize*8;
+				cursor_x = scroll_x;
+				Serial.println(cursor_x);
+			}
+			else if (wrap && (cursor_x > (_width - textsize*6))) {
+				cursor_y += textsize*8;
+				cursor_x = 0;
+			}
+		}
+	}
+	return 1;
 }
 
 // Draw a character
@@ -861,7 +887,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			for (yoff=0; yoff < 8; yoff++) {
 				uint8_t line = 0;
 				for (xoff=0; xoff < 5; xoff++) {
-					if (font[c * 5 + xoff] & mask) line |= 1;
+					if (glcdfont[c * 5 + xoff] & mask) line |= 1;
 					line <<= 1;
 				}
 				line >>= 1;
@@ -898,7 +924,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			for (yoff=0; yoff < 8; yoff++) {
 				uint8_t line = 0;
 				for (xoff=0; xoff < 5; xoff++) {
-					if (font[c * 5 + xoff] & mask) line |= 1;
+					if (glcdfont[c * 5 + xoff] & mask) line |= 1;
 					line <<= 1;
 				}
 				line >>= 1;
@@ -946,7 +972,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		for (y=0; y < 8; y++) {
 			for (yr=0; yr < size; yr++) {
 				for (x=0; x < 5; x++) {
-					if (font[c * 5 + x] & mask) {
+					if (glcdfont[c * 5 + x] & mask) {
 						color = fgcolor;
 					} else {
 						color = bgcolor;
@@ -966,19 +992,226 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 	}
 }
 
-void ILI9341_t3::setCursor(int16_t x, int16_t y) {
-  	cursor_x = x;
-  	cursor_y = y;
-  if(x>=scroll_x && x<=(scroll_x+scroll_width) && y>=scroll_y && y<=(scroll_y+scroll_height)){
-	wrtInsTextArea	= true;
-	} else {
-	wrtInsTextArea = false;
+static uint32_t fetchbit(const uint8_t *p, uint32_t index)
+{
+	if (p[index >> 3] & (1 << (7 - (index & 7)))) return 1;
+	return 0;
+}
+
+static uint32_t fetchbits_unsigned(const uint8_t *p, uint32_t index, uint32_t required)
+{
+	uint32_t val = 0;
+	do {
+		uint8_t b = p[index >> 3];
+		uint32_t avail = 8 - (index & 7);
+		if (avail <= required) {
+			val <<= avail;
+			val |= b & ((1 << avail) - 1);
+			index += avail;
+			required -= avail;
+		} else {
+			b >>= avail - required;
+			val <<= required;
+			val |= b & ((1 << required) - 1);
+			break;
+		}
+	} while (required);
+	return val;
+}
+
+static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t required)
+{
+	uint32_t val = fetchbits_unsigned(p, index, required);
+	if (val & (1 << (required - 1))) {
+		return (int32_t)val - (1 << required);
 	}
+	return (int32_t)val;
 }
 
 
+void ILI9341_t3::drawFontChar(unsigned int c)
+{
+	uint32_t bitoffset;
+	const uint8_t *data;
+
+	//Serial.printf("drawFontChar %d\n", c);
+
+	if (c >= font->index1_first && c <= font->index1_last) {
+		bitoffset = c - font->index1_first;
+		bitoffset *= font->bits_index;
+	} else if (c >= font->index2_first && c <= font->index2_last) {
+		bitoffset = c - font->index2_first + font->index1_last - font->index1_first + 1;
+		bitoffset *= font->bits_index;
+	} else if (font->unicode) {
+		return; // TODO: implement sparse unicode
+	} else {
+		return;
+	}
+	//Serial.printf("  index =  %d\n", fetchbits_unsigned(font->index, bitoffset, font->bits_index));
+	data = font->data + fetchbits_unsigned(font->index, bitoffset, font->bits_index);
+
+	uint32_t encoding = fetchbits_unsigned(data, 0, 3);
+	if (encoding != 0) return;
+	uint32_t width = fetchbits_unsigned(data, 3, font->bits_width);
+	bitoffset = font->bits_width + 3;
+	uint32_t height = fetchbits_unsigned(data, bitoffset, font->bits_height);
+	bitoffset += font->bits_height;
+	//Serial.printf("  size =   %d,%d\n", width, height);
+
+	int32_t xoffset = fetchbits_signed(data, bitoffset, font->bits_xoffset);
+	bitoffset += font->bits_xoffset;
+	int32_t yoffset = fetchbits_signed(data, bitoffset, font->bits_yoffset);
+	bitoffset += font->bits_yoffset;
+	//Serial.printf("  offset = %d,%d\n", xoffset, yoffset);
+
+	uint32_t delta = fetchbits_unsigned(data, bitoffset, font->bits_delta);
+	bitoffset += font->bits_delta;
+	//Serial.printf("  delta =  %d\n", delta);
+
+	//Serial.printf("  cursor = %d,%d\n", cursor_x, cursor_y);
+
+	// horizontally, we draw every pixel, or none at all
+	if (cursor_x < 0) cursor_x = 0;
+	int32_t origin_x = cursor_x + xoffset;
+	if (origin_x < 0) {
+		cursor_x -= xoffset;
+		origin_x = 0;
+	}
+	if (origin_x + (int)width > _width) {
+		if (!wrap) return;
+		origin_x = 0;
+		if (xoffset >= 0) {
+			cursor_x = 0;
+		} else {
+			cursor_x = -xoffset;
+		}
+		cursor_y += font->line_space;
+	}
+	if(wrap && scrollEnable && isWritingScrollArea && ((origin_x + (int)width) > (scroll_x+scroll_width))){
+    	origin_x = 0;
+		if (xoffset >= 0) {
+			cursor_x = scroll_x;
+		} else {
+			cursor_x = -xoffset;
+		}
+		cursor_y += font->line_space;
+    }
+	
+	if(scrollEnable && isWritingScrollArea && (cursor_y > (scroll_y+scroll_height - font->cap_height))){
+		scrollTextArea(font->line_space);
+		cursor_y -= font->line_space;
+		cursor_x = scroll_x;
+	} 
+	if (cursor_y >= _height) return;
+	cursor_x += delta;
+
+	// vertically, the top and/or bottom can be clipped
+	int32_t origin_y = cursor_y + font->cap_height - height - yoffset;
+	//Serial.printf("  origin = %d,%d\n", origin_x, origin_y);
+
+	// TODO: compute top skip and number of lines
+	int32_t linecount = height;
+	//uint32_t loopcount = 0;
+	uint32_t y = origin_y;
+	while (linecount) {
+		//Serial.printf("    linecount = %d\n", linecount);
+		uint32_t b = fetchbit(data, bitoffset++);
+		if (b == 0) {
+			//Serial.println("    single line");
+			uint32_t x = 0;
+			do {
+				uint32_t xsize = width - x;
+				if (xsize > 32) xsize = 32;
+				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+				drawFontBits(bits, xsize, origin_x + x, y, 1);
+				bitoffset += xsize;
+				x += xsize;
+			} while (x < width);
+			y++;
+			linecount--;
+		} else {
+			uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
+			bitoffset += 3;
+			uint32_t x = 0;
+			do {
+				uint32_t xsize = width - x;
+				if (xsize > 32) xsize = 32;
+				//Serial.printf("    multi line %d\n", n);
+				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+				drawFontBits(bits, xsize, origin_x + x, y, n);
+				bitoffset += xsize;
+				x += xsize;
+			} while (x < width);
+			y += n;
+			linecount -= n;
+		}
+		//if (++loopcount > 100) {
+			//Serial.println("     abort draw loop");
+			//break;
+		//}
+	}
+}
+
+void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat)
+{
+	// TODO: replace this *slow* code with something fast...
+	//Serial.printf("      %d bits at %d,%d: %X\n", numbits, x, y, bits);
+	if (bits == 0) return;
+	do {
+		uint32_t x1 = x;
+		uint32_t n = numbits;
+#if 0		
+		do {
+			n--;
+			if (bits & (1 << n)) {
+				drawPixel(x1, y, textcolor);
+				//Serial.printf("        pixel at %d,%d\n", x1, y);
+			}
+			x1++;
+		} while (n > 0);
+#endif
+#if 1
+		int w = 0;
+		do {
+			n--;
+			if (bits & (1 << n)) {
+				w++;
+			}  
+			else if (w > 0) {
+				drawFastHLine(x1 - w, y, w, textcolor);
+				w = 0;
+			}
+						
+			x1++;
+		} while (n > 0);
+		if (w > 0) drawFastHLine(x1 - w, y, w, textcolor);
+#endif
+		y++;
+		repeat--;
+	} while (repeat);
+}
+
+void ILI9341_t3::setCursor(int16_t x, int16_t y) {
+	if (x < 0) x = 0;
+	else if (x >= _width) x = _width - 1;
+	cursor_x = x;
+	if (y < 0) y = 0;
+	else if (y >= _height) y = _height - 1;
+	cursor_y = y;
+
+	if(x>=scroll_x && x<=(scroll_x+scroll_width) && y>=scroll_y && y<=(scroll_y+scroll_height)){
+		isWritingScrollArea	= true;
+	} else {
+		isWritingScrollArea = false;
+	}
+}
+
 void ILI9341_t3::setTextSize(uint8_t s) {
   textsize = (s > 0) ? s : 1;
+}
+
+uint8_t ILI9341_t3::getTextSize() {
+	return textsize;
 }
 
 void ILI9341_t3::setTextColor(uint16_t c) {
@@ -996,43 +1229,87 @@ void ILI9341_t3::setTextWrap(boolean w) {
   wrap = w;
 }
 
+boolean ILI9341_t3::getTextWrap()
+{
+	return wrap;
+}
+
 uint8_t ILI9341_t3::getRotation(void) {
   return rotation;
 }
 
-int16_t ILI9341_t3::getCursor_x(void) {
-  return cursor_x;
+void Adafruit_GFX_Button::initButton(ILI9341_t3 *gfx,
+	int16_t x, int16_t y, uint8_t w, uint8_t h,
+	uint16_t outline, uint16_t fill, uint16_t textcolor,
+	const char *label, uint8_t textsize)
+{
+	_x = x;
+	_y = y;
+	_w = w;
+	_h = h;
+	_outlinecolor = outline;
+	_fillcolor = fill;
+	_textcolor = textcolor;
+	_textsize = textsize;
+	_gfx = gfx;
+	strncpy(_label, label, 9);
+	_label[9] = 0;
 }
 
-int16_t ILI9341_t3::getCursor_y(void) {
-  return cursor_y;
+void Adafruit_GFX_Button::drawButton(bool inverted)
+{
+	uint16_t fill, outline, text;
+
+	if (! inverted) {
+		fill = _fillcolor;
+		outline = _outlinecolor;
+		text = _textcolor;
+	} else {
+		fill =  _textcolor;
+		outline = _outlinecolor;
+		text = _fillcolor;
+	}
+	_gfx->fillRoundRect(_x - (_w/2), _y - (_h/2), _w, _h, min(_w,_h)/4, fill);
+	_gfx->drawRoundRect(_x - (_w/2), _y - (_h/2), _w, _h, min(_w,_h)/4, outline);
+	_gfx->setCursor(_x - strlen(_label)*3*_textsize, _y-4*_textsize);
+	_gfx->setTextColor(text);
+	_gfx->setTextSize(_textsize);
+	_gfx->print(_label);
+}
+
+bool Adafruit_GFX_Button::contains(int16_t x, int16_t y)
+{
+	if ((x < (_x - _w/2)) || (x > (_x + _w/2))) return false;
+	if ((y < (_y - _h/2)) || (y > (_y + _h/2))) return false;
+	return true;
+}
+
+void ILI9341_t3::scrollTextArea(uint8_t scrollSize){
+	uint16_t awColors[scroll_width];
+	for (int y=scroll_y+scrollSize; y < (scroll_y+scroll_height); y++) { 
+    readRect(scroll_x, y, scroll_width, 1, awColors); 
+    writeRect(scroll_x, y-scrollSize, scroll_width, 1, awColors);  
+  }
+  fillRect(scroll_x, (scroll_y+scroll_height)-scrollSize, scroll_width, scrollSize, scrollbgcolor);
+}
+
+void ILI9341_t3::setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h){
+	scroll_x = x; 
+	scroll_y = y;
+	scroll_width = w; 
+	scroll_height = h;
+}
+
+void ILI9341_t3::setScrollBackgroundColor(uint16_t color){
+	scrollbgcolor=color;
+	fillRect(scroll_x,scroll_y,scroll_width,scroll_height,scrollbgcolor);
 }
 
 void ILI9341_t3::enableScroll(void){
 	scrollEnable = true;
-	scrollbgcolor = ILI9341_BLACK;
 }
 
 void ILI9341_t3::disableScroll(void){
 	scrollEnable = false;
 }
-
-void ILI9341_t3::setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
-	scroll_x = x; 
-	scroll_y = y;
-	scroll_width = w; 
-	scroll_height = h;
-	scrollbgcolor = color;
-	fillRect(scroll_x,scroll_y,scroll_width,scroll_height,scrollbgcolor);
-}
-
-void ILI9341_t3::scrollTextArea(void){
-	uint16_t awColors[scroll_width];
-	for (int y=scroll_y+textsize*8; y < (scroll_y+scroll_height); y++) { 
-    readRect(scroll_x, y, scroll_width, 1, awColors);  // try to read one row at a time...
-    writeRect(scroll_x, y-textsize*8, scroll_width, 1, awColors);  // try to read one row at a time...
-  }
-  fillRect(scroll_x, (scroll_y+scroll_height)-textsize*8, scroll_width, textsize*8, scrollbgcolor);
-}
-
 

@@ -315,7 +315,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 	uint8_t r,g,b;
 	uint16_t c = w * h;
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM

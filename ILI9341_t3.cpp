@@ -858,7 +858,6 @@ size_t ILI9341_t3::write(uint8_t c)
 			if(wrap && scrollEnable && isWritingScrollArea && (cursor_x > (scroll_x+scroll_width - textsize*6))){
 				cursor_y += textsize*8;
 				cursor_x = scroll_x;
-				Serial.println(cursor_x);
 			}
 			else if (wrap && (cursor_x > (_width - textsize*6))) {
 				cursor_y += textsize*8;

@@ -189,6 +189,7 @@ class ILI9341_t3 : public Print
 	void enableScroll(void);
 	void disableScroll(void);
 	void scrollTextArea(uint8_t scrollSize);
+	void resetScrollBackgroundColor(uint16_t color);
 
 
  protected:

@@ -1313,3 +1313,6 @@ void ILI9341_t3::disableScroll(void){
 	scrollEnable = false;
 }
 
+void ILI9341_t3::resetScrollBackgroundColor(uint16_t color){
+	scrollbgcolor=color;
+}

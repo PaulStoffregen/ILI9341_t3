@@ -22,8 +22,10 @@
 #include <string.h>
 #include <ctype.h>
 
-#define ENCODING_START  32
-#define ENCODING_END    126
+int ENCODING_START = 32;
+int ENCODING_END = 126;
+int cap_height_char = 'E';
+#define MAX_CHARS  (255)
 
 //#define ENCODING_OFFSET 0xF000  // intended for Font-Awesome
 
@@ -43,7 +45,7 @@ typedef struct {
 	const uint8_t *data;
 } glyph_t;
 
-glyph_t glyphs[ENCODING_END+1];
+glyph_t glyphs[MAX_CHARS+1];
 int bits_width, bits_height, bits_delta;
 int bits_xoffset, bits_yoffset, bits_index;
 int font_size = 0;
@@ -51,6 +53,7 @@ int line_space = 0;
 int cap_height = 0;
 int is_bold = 0;
 int is_italic = 0;
+int is_digits = 0;
 
 void parse_bdf(FILE *fp, glyph_t *g);
 void compute_min_max(void);
@@ -211,8 +214,17 @@ void output_glyph(const glyph_t *g)
 }
 
 
-int main()
+int main (int argc, char *argv[])
 {
+  // only encode the digits and punctuation, chars 32-58
+  if ((argc > 1) && (strcmp(argv[1], "-digits") == 0)) {
+    ENCODING_END = 58;
+    cap_height_char = '0';
+    printf("/* Digits only version */\n");
+    is_digits = 1;
+  }
+
+  
 	glyph_t *g;
 	int datasize, indexsize;
 
@@ -418,12 +430,13 @@ void parse_bdf(FILE *fp, glyph_t *g)
 		line_space = font_ascent + font_descent;
 		//printf("// line_space = %d\n", line_space);
 	}
-	if (ENCODING_START <= 'E' && ENCODING_END >= 'E' && g['E'].data != NULL) {
-		cap_height = g['E'].height + g['E'].yoffset;
-		//printf("// cap_height = %d\n", cap_height);
+	if (ENCODING_START <= cap_height_char && ENCODING_END >= cap_height_char && g[cap_height_char].data != NULL) {
+		cap_height = g[cap_height_char].height + g[cap_height_char].yoffset;
+		printf("// cap_height = %d\n", cap_height);
 	}
 	sprintf(name, "_%d", font_size);
 	strcat(font_name, name);
+	if (is_digits) strcat(font_name, "_Digits");
 	if (is_bold) strcat(font_name, "_Bold");
 	if (is_italic) strcat(font_name, "_Italic");
 }

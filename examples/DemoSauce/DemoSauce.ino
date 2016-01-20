@@ -126,7 +126,15 @@ void setup() {
     tft.print("Arduino");
     tft.setCursor(60, 120);
     tft.print("Serial Monitor");
-    while (!Serial && millis() < 6000); // wait for Arduino Serial Monitor
+    tft.setTextColor(ILI9341_GREEN);
+    tft.setFont(Arial_18);
+    while (!Serial && millis() < 8000) { // wait for Arduino Serial Monitor
+      tft.fillRect(118, 182, 42, 18, ILI9341_BLACK);
+      tft.setCursor(118, 182);
+      tft.print((8000.0 - (float)millis()) / 1000.0, 1);
+      tft.print(" sec");
+      delay(100);
+    }
   }
   previousMillis = millis();
 

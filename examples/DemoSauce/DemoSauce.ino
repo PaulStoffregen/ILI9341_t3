@@ -14,8 +14,11 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
+// https://github.com/zkarcher/demosauce
+
 #include "SPI.h"
 #include "ILI9341_t3.h"
+#include "font_Arial.h"
 
 #include "FrameParams.h"
 
@@ -55,7 +58,7 @@ const uint8_t TFT_CS = 10;
 const uint8_t MIC_PIN = 14;
 const uint8_t BACKLIGHT_PIN = 23;
 
-// Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
+// Use hardware SPI (#13, #12, #11) and the above for CS/DC
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 FrameParams frameParams;
 long previousMillis = 0;
@@ -107,13 +110,25 @@ void setup() {
   // Microphone
   pinMode( MIC_PIN, INPUT );
 
+  tft.begin();
+  tft.setRotation( 3 );
+  tft.fillScreen(ILI9341_BLACK);
+
   // Serial
   if( DO_BENCHMARKS ) {
     Serial.begin( SERIAL_BAUD_RATE );
-    while (!Serial); // wait for Arduino Serial Monitor
+    tft.setTextColor(ILI9341_YELLOW);
+    tft.setFont(Arial_18);
+    tft.setCursor(98, 42);
+    tft.print("waiting for");
+    tft.setFont(Arial_24);
+    tft.setCursor(100, 80);
+    tft.print("Arduino");
+    tft.setCursor(60, 120);
+    tft.print("Serial Monitor");
+    while (!Serial && millis() < 6000); // wait for Arduino Serial Monitor
   }
-
-  tft.begin();
+  previousMillis = millis();
 
   // Clear
   uint16_t w = tft.width();

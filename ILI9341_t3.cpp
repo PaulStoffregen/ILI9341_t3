@@ -218,7 +218,7 @@ uint8_t ILI9341_t3::readdata(void)
     return r;
 }
  */
- 
+
 
 uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 {
@@ -227,7 +227,7 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 
     SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
     while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
-    
+
     // Make sure the last frame has been sent...
     KINETISK_SPI0.SR = SPI_SR_TCF;   // dlear it out;
     wTimeout = 0xffff;
@@ -238,7 +238,7 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
         r = KINETISK_SPI0.POPR;
     }
-    
+
     //writecommand(0xD9); // sekret command
 	KINETISK_SPI0.PUSHR = 0xD9 | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
 //	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
@@ -254,8 +254,8 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     // readdata
 	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
 //	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
-        
-    // Now wait until completed. 
+
+    // Now wait until completed.
     wTimeout = 0xffff;
     while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
 
@@ -309,7 +309,7 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 }
 
 // Now lets see if we can read in multiple pixels
-void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) 
+void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors)
 {
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
@@ -323,7 +323,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT | SPI_PUSHR_EOQ;
 	while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
 	KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
-	while ((KINETISK_SPI0.SR & 0xf0)) { 
+	while ((KINETISK_SPI0.SR & 0xf0)) {
 		dummy = KINETISK_SPI0.POPR;	// Read a DUMMY byte but only once
 	}
 	c *= 3; // number of bytes we will transmit to the display
@@ -346,7 +346,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 			b = KINETISK_SPI0.POPR;		// Read a BLUE byte of GRAM
 			*pcolors++ = color565(r,g,b);
 		}
-        
+
 		// like waitFiroNotFull but does not pop our return queue
 		while ((KINETISK_SPI0.SR & (15 << 12)) > (3 << 12)) ;
 	}
@@ -354,7 +354,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 }
 
 // Now lets see if we can writemultiple pixels
-void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) 
+void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors)
 {
    	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
@@ -465,7 +465,7 @@ paired with a hardware-specific library for each display device we carry
 
 Adafruit invests time and resources providing this open source code, please
 support Adafruit & open-source hardware by purchasing products from Adafruit!
- 
+
 Copyright (c) 2013 Adafruit Industries.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -516,7 +516,7 @@ void ILI9341_t3::drawCircle(int16_t x0, int16_t y0, int16_t r,
     x++;
     ddF_x += 2;
     f += ddF_x;
-  
+
     drawPixel(x0 + x, y0 + y, color);
     drawPixel(x0 - x, y0 + y, color);
     drawPixel(x0 + x, y0 - y, color);
@@ -548,7 +548,7 @@ void ILI9341_t3::drawCircleHelper( int16_t x0, int16_t y0,
     if (cornername & 0x4) {
       drawPixel(x0 + x, y0 + y, color);
       drawPixel(x0 + y, y0 + x, color);
-    } 
+    }
     if (cornername & 0x2) {
       drawPixel(x0 + x, y0 - y, color);
       drawPixel(x0 + y, y0 - x, color);
@@ -1150,7 +1150,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 			n--;
 			if (bits & (1 << n)) {
 				w++;
-			}  
+			}
 			else if (w > 0) {
 				drawFastHLine(x1 - w, y, w, textcolor);
 				w = 0;
@@ -1183,14 +1183,14 @@ uint8_t ILI9341_t3::getTextSize() {
 }
 
 void ILI9341_t3::setTextColor(uint16_t c) {
-  // For 'transparent' background, we'll set the bg 
+  // For 'transparent' background, we'll set the bg
   // to the same as fg instead of using a flag
   textcolor = textbgcolor = c;
 }
 
 void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
   textcolor   = c;
-  textbgcolor = b; 
+  textbgcolor = b;
 }
 
 void ILI9341_t3::setTextWrap(boolean w) {
@@ -1207,7 +1207,7 @@ uint8_t ILI9341_t3::getRotation(void) {
 }
 
 void ILI9341_t3::sleep(bool enable) {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0)); 
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	if (enable) {
 		writecommand_cont(ILI9341_DISPOFF);		
 		writecommand_last(ILI9341_SLPIN);	
@@ -1218,7 +1218,7 @@ void ILI9341_t3::sleep(bool enable) {
 		SPI.endTransaction();
 		delay(5);
 	}
-} 
+}
 
 void Adafruit_GFX_Button::initButton(ILI9341_t3 *gfx,
 	int16_t x, int16_t y, uint8_t w, uint8_t h,

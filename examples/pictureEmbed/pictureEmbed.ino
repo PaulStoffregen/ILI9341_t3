@@ -9,9 +9,9 @@
 #include "ILI9341_t3.h"
 
 // Converted to code with:
-// http://www.displaymodule.com/pages/imageconverter
+// http://www.rinkydinkelectronics.com/t_imageconverter565.php
 //
-#include "picture.h" //the picture (with 35 byte header)
+#include "picture.c" //the picture
 
 // Normal Connections
 #define TFT_DC       9
@@ -35,7 +35,7 @@ void setup() {
   tft.begin();
   tft.setRotation(3);
   tft.fillScreen(ILI9341_BLACK);
-  tft.writeRect(32, 33, 256, 174, (uint16_t*)picture+35);
+  tft.writeRect(32, 33, 256, 174, (uint16_t*)picture);
 }
 
 void loop(void) {

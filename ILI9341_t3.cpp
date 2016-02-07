@@ -1128,13 +1128,13 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 
 void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat)
 {
+#if 0			
 	// TODO: replace this *slow* code with something fast...
 	//Serial.printf("      %d bits at %d,%d: %X\n", numbits, x, y, bits);
 	if (bits == 0) return;
 	do {
 		uint32_t x1 = x;
 		uint32_t n = numbits;
-#if 0		
 		do {
 			n--;
 			if (bits & (1 << n)) {
@@ -1143,26 +1143,59 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 			}
 			x1++;
 		} while (n > 0);
+		y++;
+		repeat--;
+	} while (repeat);
 #endif
 #if 1
-		int w = 0;
+	if (bits == 0) return;
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	int w = 0;
+	do {
+		uint32_t x1 = x;
+		uint32_t n = numbits;		
+		
+		writecommand_cont(ILI9341_PASET); // Row addr set
+		writedata16_cont(y);   // YSTART
+		writedata16_cont(y);   // YEND	
+		
 		do {
 			n--;
 			if (bits & (1 << n)) {
 				w++;
 			}
 			else if (w > 0) {
-				drawFastHLine(x1 - w, y, w, textcolor);
-				w = 0;
+				// "drawFastHLine(x1 - w, y, w, textcolor)"
+				writecommand_cont(ILI9341_CASET); // Column addr set
+				writedata16_cont(x1 - w);   // XSTART
+				writedata16_cont(x1);   // XEND					
+				writecommand_cont(ILI9341_RAMWR);
+				while (w-- > 1) { // draw line
+					writedata16_cont(textcolor);
+				}
+				writedata16_last(textcolor);
 			}
 						
 			x1++;
 		} while (n > 0);
-		if (w > 0) drawFastHLine(x1 - w, y, w, textcolor);
-#endif
+
+		if (w > 0) {
+				// "drawFastHLine(x1 - w, y, w, textcolor)"
+				writecommand_cont(ILI9341_CASET); // Column addr set
+				writedata16_cont(x1 - w);   // XSTART
+				writedata16_cont(x1);   // XEND
+				writecommand_cont(ILI9341_RAMWR);				
+				while (w-- > 1) { //draw line
+					writedata16_cont(textcolor);
+				}
+				writedata16_last(textcolor);
+		}
+		
 		y++;
 		repeat--;
 	} while (repeat);
+	SPI.endTransaction();
+#endif	
 }
 
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {

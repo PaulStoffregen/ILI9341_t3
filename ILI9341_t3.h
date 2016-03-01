@@ -179,9 +179,12 @@ class ILI9341_t3 : public Print
 	uint8_t getTextSize();
 	void setTextWrap(boolean w);
 	boolean getTextWrap();
-	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2)
-	  { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2;} ;
+
+  void setOrigin(int16_t x = 0, int16_t y = 0) { origin_x = x; origin_y = y; }
+  void getOrigin(int16_t* x, int16_t* y) { *x = origin_x; *y = origin_y; }
+	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2) { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2; }
 	void setClipRect() { _clipx1 = 0; _clipy1 = 0; _clipx2 = _width; _clipy2 = _height; }
+
 	virtual size_t write(uint8_t);
 	int16_t width(void)  { return _width; }
 	int16_t height(void) { return _height; }
@@ -207,6 +210,9 @@ class ILI9341_t3 : public Print
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;
   int16_t  _clipx1, _clipy1, _clipx2, _clipy2;
+
+  int16_t  origin_x, origin_y;
+  int16_t  rel_clipx1, rel_clipy1, rel_clipx2, rel_clipy2;
 	uint16_t textcolor, textbgcolor;
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display
@@ -291,7 +297,7 @@ class ILI9341_t3 : public Print
 	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	  __attribute__((always_inline)) {
 
-    // Rudimentary clipping
+    // Rectangular clipping
     if((y < _clipy1) || (x >= _clipx2) || (y >= _clipy2)) return;
     if(x<_clipx1) { w = w - (_clipx1 - x); x = _clipx1; }
     if((x+w-1) >= _clipx2)  w = _clipx2-x;
@@ -304,7 +310,7 @@ class ILI9341_t3 : public Print
 	void VLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	  __attribute__((always_inline)) {
 
-    // Rudimentary clipping
+    // Rectangular clipping
     if((x < _clipx1) || (x >= _clipx2) || (y >= _clipy2)) return;
     if(y < _clipy1) { h = h - (_clipy1 - y); y = _clipy1;}
     if((y+h-1) >= _clipy2) h = _clipy2-y;

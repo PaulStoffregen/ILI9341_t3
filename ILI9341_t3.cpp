@@ -75,7 +75,7 @@ void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
-	// Rudimentary clipping
+	// Rectangular clipping
 	if((x < _clipx1) || (x >= _clipx2) || (y >= _clipy2)) return;
 	if(y < _clipy1) { h = h - (_clipy1 - y); y = _clipy1;}
 	if((y+h-1) >= _clipy2) h = _clipy2-y;
@@ -94,7 +94,7 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 
 void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
-	// Rudimentary clipping
+	// Rectangular clipping
 	if((y < _clipy1) || (x >= _clipx2) || (y >= _clipy2)) return;
 	if(x<_clipx1) { w = w - (_clipx1 - x); x = _clipx1; }
 	if((x+w-1) >= _clipx2)  w = _clipx2-x;
@@ -118,7 +118,7 @@ void ILI9341_t3::fillScreen(uint16_t color)
 // fill a rectangle
 void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
-	// rudimentary clipping (drawChar w/big text requires this)
+	// Rectangular clipping (drawChar w/big text requires this)
 	if((x >= _clipx2) || (y >= _clipy2)) return;
 	if((x + w - 1) >= _clipx2)  w = _clipx2  - x;
 	if((y + h - 1) >= _clipy2) h = _clipy2 - y;
@@ -183,6 +183,8 @@ void ILI9341_t3::setRotation(uint8_t m)
 	setClipRect();
 	cursor_x = 0;
 	cursor_y = 0;
+	origin_x = 0;
+	origin_y = 0;
 }
 
 void ILI9341_t3::setScroll(uint16_t offset)
@@ -1012,7 +1014,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			}
 		}
 	} else {
-		// Rudimentary clipping
+		// Rectangular clipping
 		if((x >= _clipx2)            || // Clip right
 			 (y >= _clipy2)           || // Clip bottom
 			 ((x + 6 * size - 1) < _clipx1) || // Clip left  TODO: this is not correct

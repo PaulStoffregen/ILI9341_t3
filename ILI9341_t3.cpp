@@ -156,8 +156,9 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 
 void ILI9341_t3::setRotation(uint8_t m)
 {
-	writecommand_cont(ILI9341_MADCTL);
 	rotation = m % 4; // can't be higher than 3
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	writecommand_cont(ILI9341_MADCTL);
 	switch (rotation) {
 	case 0:
 		writedata8_last(MADCTL_MX | MADCTL_BGR);
@@ -180,6 +181,7 @@ void ILI9341_t3::setRotation(uint8_t m)
 		_height = ILI9341_TFTWIDTH;
 		break;
 	}
+	SPI.endTransaction();
 	setClipRect();
 	cursor_x = 0;
 	cursor_y = 0;
@@ -197,7 +199,9 @@ void ILI9341_t3::setScroll(uint16_t offset)
 
 void ILI9341_t3::invertDisplay(boolean i)
 {
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
+	SPI.endTransaction();
 }
 
 

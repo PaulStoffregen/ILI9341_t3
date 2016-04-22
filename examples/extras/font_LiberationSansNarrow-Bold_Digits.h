@@ -1,0 +1,33 @@
+#ifndef _ILI9341_t3_font_LiberationSansNarrow-Bold_Digits_
+#define _ILI9341_t3_font_LiberationSansNarrow-Bold_Digits_
+
+#include "ILI9341_t3.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const ILI9341_t3_font_t LiberationSansNarrow_8_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_9_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_10_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_11_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_12_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_13_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_14_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_16_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_18_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_20_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_24_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_28_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_32_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_40_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_48_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_60_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_72_Digits_Bold;
+extern const ILI9341_t3_font_t LiberationSansNarrow_96_Digits_Bold;
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif

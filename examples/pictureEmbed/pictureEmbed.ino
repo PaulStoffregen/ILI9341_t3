@@ -13,6 +13,25 @@
 //
 #include "picture.c" //the picture
 
+/* GIMP (https://www.gimp.org/) can also be used to export the image using the following steps:
+
+    1. File -> Export As
+    2. In the Export Image dialog, use 'C source code (*.c)' as filetype.
+    3. Press export to get the export options dialog.
+    4. Type the desired variable name into the 'prefixed name' box.
+    5. Uncheck 'GLIB types (guint8*)'
+    6. Check 'Save as RGB565 (16-bit)'
+    7. Press export to save your image.
+
+  Assuming 'image_name' was typed in the 'prefixed name' box of step 4, you can have to include the c file as above,
+  using the image can be done with:
+
+    tft.writeRect(0, 0, image_name.width, image_name.height, (uint16_t*)(image_name.pixel_data));
+
+  See also https://forum.pjrc.com/threads/35575-Export-for-ILI9341_t3-with-GIMP 
+*/
+
+
 // Normal Connections
 #define TFT_DC       9
 #define TFT_CS      10

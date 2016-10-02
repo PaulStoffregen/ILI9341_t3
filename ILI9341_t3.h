@@ -180,8 +180,8 @@ class ILI9341_t3 : public Print
 	void setTextWrap(boolean w);
 	boolean getTextWrap();
 
-  void setOrigin(int16_t x = 0, int16_t y = 0) { origin_x = x; origin_y = y; }
-  void getOrigin(int16_t* x, int16_t* y) { *x = origin_x; *y = origin_y; }
+  void setOrigin(int16_t x = 0, int16_t y = 0) { _originx = x; _originy = y; }
+  void getOrigin(int16_t* x, int16_t* y) { *x = _originx; *y = _originy; }
 	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2) { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2; }
 	void setClipRect() { _clipx1 = 0; _clipy1 = 0; _clipx2 = _width; _clipy2 = _height; }
 
@@ -211,8 +211,7 @@ class ILI9341_t3 : public Print
 	int16_t  cursor_x, cursor_y;
   int16_t  _clipx1, _clipy1, _clipx2, _clipy2;
 
-  int16_t  origin_x, origin_y;
-  int16_t  rel_clipx1, rel_clipy1, rel_clipx2, rel_clipy2;
+  int16_t  _originx, _originy;
 	uint16_t textcolor, textbgcolor;
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display

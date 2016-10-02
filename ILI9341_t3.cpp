@@ -183,10 +183,9 @@ void ILI9341_t3::setRotation(uint8_t m)
 	}
 	SPI.endTransaction();
 	setClipRect();
+	setOrigin();
 	cursor_x = 0;
 	cursor_y = 0;
-	origin_x = 0;
-	origin_y = 0;
 }
 
 void ILI9341_t3::setScroll(uint16_t offset)
@@ -1238,25 +1237,25 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 				if (xsize > 32) xsize = 32;
 				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
 				if (!opaque) {
-					drawFontBits(bits, xsize, origin_x + x, y, 1);
+					drawFontBits(bits, xsize, x, y, 1);
 				} else {
-					drawFontBitsOpaque(bits, xsize, origin_x + x, y, 1);
+					drawFontBitsOpaque(bits, xsize, x, y, 1);
 				}
 				bitoffset += xsize;
 				x += xsize;
 			} while (x < width);
 
-			int remaining = cursor_x-origin_x-width;
+			int remaining = cursor_x-width;
 			if (opaque && remaining > 0) {
-				drawFastHLine(origin_x+width, y, remaining, textbgcolor);
+				drawFastHLine(width, y, remaining, textbgcolor);
 			}
 
 			y++;
 			linecount--;
 		} else {
 			uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
-			if (opaque && (origin_x > cursor_x-(int32_t)delta)) {
-				fillRect(cursor_x-delta, y, origin_x - (cursor_x-delta), n, textbgcolor);
+			if (opaque && (0 > cursor_x-(int32_t)delta)) {
+				fillRect(cursor_x-delta, y,  -(cursor_x-delta), n, textbgcolor);
 			}
 			bitoffset += 3;
 			uint32_t x = 0;
@@ -1266,17 +1265,17 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 				//Serial.printf("    multi line %d\n", n);
 				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
 				if (!opaque) {
-					drawFontBits(bits, xsize, origin_x + x, y, n);
+					drawFontBits(bits, xsize, x, y, n);
 				} else {
-					drawFontBitsOpaque(bits, xsize, origin_x + x, y, n);
+					drawFontBitsOpaque(bits, xsize, x, y, n);
 				}
 				bitoffset += xsize;
 				x += xsize;
 			} while (x < width);
 
-			int remaining = cursor_x-origin_x-width;
+			int remaining = cursor_x-width;
 			if (opaque && remaining > 0) {
-				fillRect(origin_x+width, y, remaining, n, textbgcolor);
+				fillRect(width, y, remaining, n, textbgcolor);
 			}
 
 			y += n;

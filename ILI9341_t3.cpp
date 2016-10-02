@@ -93,7 +93,6 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	}
 	writedata16_last(color);
 	SPI.endTransaction();
-
 }
 
 void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
@@ -119,7 +118,7 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 
 void ILI9341_t3::fillScreen(uint16_t color)
 {
-	fillRect(0,0,width(),height(), color);
+	fillRect(0, 0, _width, _height, color);
 }
 
 // fill a rectangle
@@ -930,7 +929,7 @@ size_t ILI9341_t3::write(uint8_t c)
 		} else {
 			drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
 			cursor_x += textsize*6;
-		if (wrap && (cursor_x > (_clipx2 - textsize*6))) {
+			if (wrap && (cursor_x > (_clipx2 - textsize*6))) {
 				cursor_y += textsize*8;
 				cursor_x = _clipx1;
 			}
@@ -1230,8 +1229,6 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 	int32_t y = origin_y;
 	bool opaque = (textbgcolor != textcolor);
 	if (opaque) {
-//		Serial.printf("cursor_x %d, cursor_y %d, delta %d, line_space %d, width %d, height %d\n",
-//									 cursor_x   , cursor_y   , delta,    font->line_space, width, height);
 		int header = origin_y-cursor_y;
 		// clear above character
 		fillRect(cursor_x-delta,cursor_y,delta,header, textbgcolor);
@@ -1252,9 +1249,7 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 				uint32_t xsize = width - x;
 				if (xsize > 32) xsize = 32;
 				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
-
 				drawFontBits(opaque, bits, xsize, origin_x + x, y, 1);
-
 				bitoffset += xsize;
 				x += xsize;
 			} while (x < width);
@@ -1278,9 +1273,7 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 				if (xsize > 32) xsize = 32;
 				//Serial.printf("    multi line %d\n", n);
 				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
-
 				drawFontBits(opaque, bits, xsize, origin_x + x, y, n);
-
 				bitoffset += xsize;
 				x += xsize;
 			} while (x < width);
@@ -1458,7 +1451,7 @@ void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
 }
 
 void ILI9341_t3::setTextWrap(boolean w) {
-	wrap = w;
+  wrap = w;
 }
 
 boolean ILI9341_t3::getTextWrap()

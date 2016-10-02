@@ -180,10 +180,16 @@ class ILI9341_t3 : public Print
 	void setTextWrap(boolean w);
 	boolean getTextWrap();
 
-  void setOrigin(int16_t x = 0, int16_t y = 0) { _originx = x; _originy = y; }
+  // setOrigin sets an offset in display pixels where drawing to (0,0) will appear
+  // for example: setOrigin(10,10); drawPixel(5,5); will cause a pixel to be drawn at hardware pixel (15,15)
+  void setOrigin(int16_t x = 0, int16_t y = 0) { _originx = x; _originy = y; updateDisplayClip();}
   void getOrigin(int16_t* x, int16_t* y) { *x = _originx; *y = _originy; }
-	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2) { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2; }
-	void setClipRect() { _clipx1 = 0; _clipy1 = 0; _clipx2 = _width; _clipy2 = _height; }
+
+  // setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
+  // Drawing is also restricted to the bounds of the display
+
+	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2) { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2; updateDisplayClip();}
+	void setClipRect() { _clipx1 = 0; _clipy1 = 0; _clipx2 = _width; _clipy2 = _height; updateDisplayClip(); }
 
 	virtual size_t write(uint8_t);
 	int16_t width(void)  { return _width; }
@@ -209,9 +215,21 @@ class ILI9341_t3 : public Print
  protected:
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;
-  int16_t  _clipx1, _clipy1, _clipx2, _clipy2;
 
+  int16_t  _clipx1, _clipy1, _clipx2, _clipy2;
   int16_t  _originx, _originy;
+  int16_t  _displayclipx1, _displayclipy1, _displayclipx2, _displayclipy2;
+  bool _invisible = false;
+
+  inline void updateDisplayClip() {
+    _displayclipx1 = max(0,min(_clipx1+_originx,width()));
+    _displayclipx2 = max(0,min(_clipx2+_originx,width()));
+
+    _displayclipy1 = max(0,min(_clipy1+_originy,height()));
+    _displayclipy2 = max(0,min(_clipy2+_originy,height()));
+    _invisible = (_displayclipx1 == _displayclipx2 || _displayclipy1 == _displayclipy2);
+  }
+
 	uint16_t textcolor, textbgcolor;
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display
@@ -296,10 +314,13 @@ class ILI9341_t3 : public Print
 	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	  __attribute__((always_inline)) {
 
+    x+=_originx;
+    y+=_originy;
+
     // Rectangular clipping
-    if((y < _clipy1) || (x >= _clipx2) || (y >= _clipy2)) return;
-    if(x<_clipx1) { w = w - (_clipx1 - x); x = _clipx1; }
-    if((x+w-1) >= _clipx2)  w = _clipx2-x;
+    if((y < _displayclipy1) || (x >= _displayclipx2) || (y >= _displayclipy2)) return;
+    if(x<_displayclipx1) { w = w - (_displayclipx1 - x); x = _displayclipx1; }
+    if((x+w-1) >= _displayclipx2)  w = _displayclipx2-x;
     if (w<1) return;
 
 		setAddr(x, y, x+w-1, y);
@@ -309,10 +330,13 @@ class ILI9341_t3 : public Print
 	void VLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	  __attribute__((always_inline)) {
 
+    x+=_originx;
+    y+=_originy;
+
     // Rectangular clipping
-    if((x < _clipx1) || (x >= _clipx2) || (y >= _clipy2)) return;
-    if(y < _clipy1) { h = h - (_clipy1 - y); y = _clipy1;}
-    if((y+h-1) >= _clipy2) h = _clipy2-y;
+    if((x < _displayclipx1) || (x >= _displayclipx2) || (y >= _displayclipy2)) return;
+    if(y < _displayclipy1) { h = h - (_displayclipy1 - y); y = _displayclipy1;}
+    if((y+h-1) >= _displayclipy2) h = _displayclipy2-y;
     if(h<1) return;
 
 
@@ -323,14 +347,16 @@ class ILI9341_t3 : public Print
 	void Pixel(int16_t x, int16_t y, uint16_t color)
 	  __attribute__((always_inline)) {
 
-  	if((x < _clipx1) ||(x >= _clipx2) || (y < _clipy1) || (y >= _clipy2)) return;
+    x+=_originx;
+    y+=_originy;
+
+  	if((x < _displayclipx1) ||(x >= _displayclipx2) || (y < _displayclipy1) || (y >= _displayclipy2)) return;
 
 		setAddr(x, y, x, y);
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);
 	}
-	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
-	void drawFontBitsOpaque(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
+	void drawFontBits(bool opaque, uint32_t bits, uint32_t numbits, int32_t x, int32_t y, uint32_t repeat);
 };
 
 #ifndef swap

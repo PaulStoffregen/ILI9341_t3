@@ -188,7 +188,7 @@ class ILI9341_t3 : public Print
   // setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
   // Drawing is also restricted to the bounds of the display
 
-	void setClipRect(int16_t x1, int16_t y1, int16_t x2, int16_t y2) { _clipx1 = x1; _clipy1 = y1; _clipx2 = x2; _clipy2 = y2; updateDisplayClip();}
+	void setClipRect(int16_t x1, int16_t y1, int16_t w, int16_t h) { _clipx1 = x1; _clipy1 = y1; _clipx2 = x1+w; _clipy2 = y1+h; updateDisplayClip();}
 	void setClipRect() { _clipx1 = 0; _clipy1 = 0; _clipx2 = _width; _clipy2 = _height; updateDisplayClip(); }
 
 	virtual size_t write(uint8_t);

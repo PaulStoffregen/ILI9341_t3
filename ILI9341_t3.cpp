@@ -116,6 +116,51 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	SPI.endTransaction();
 }
 
+void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t* colors)
+{
+	x+=_originx;
+	y+=_originy;
+	// Rectangular clipping
+	if((x < _displayclipx1) || (x >= _displayclipx2) || (y >= _displayclipy2)) return;
+	if(y < _displayclipy1) { h = h - (_displayclipy1 - y); y = _displayclipy1;}
+	if((y+h-1) >= _displayclipy2) h = _displayclipy2-y;
+	if(h<1) return;
+
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	int16_t i = 0;
+	while (i < (h-1)) {
+		writedata16_cont(colors[i]);
+		i++;
+	}
+	writedata16_last(colors[i]);
+	SPI.endTransaction();
+}
+
+void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t* colors)
+{
+	x+=_originx;
+	y+=_originy;
+
+	// Rectangular clipping
+	if((y < _displayclipy1) || (x >= _displayclipx2) || (y >= _displayclipy2)) return;
+	if(x<_displayclipx1) { w = w - (_displayclipx1 - x); x = _displayclipx1; }
+	if((x+w-1) >= _displayclipx2)  w = _displayclipx2-x;
+	if (w<1) return;
+
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y);
+	writecommand_cont(ILI9341_RAMWR);
+	int16_t i = 0;
+	while (i < (w-1)) {
+		writedata16_cont(colors[i]);
+		i++;
+	}
+	writedata16_last(colors[i]);
+	SPI.endTransaction();
+}
+
 void ILI9341_t3::fillScreen(uint16_t color)
 {
 	fillRect(0, 0, _width, _height, color);

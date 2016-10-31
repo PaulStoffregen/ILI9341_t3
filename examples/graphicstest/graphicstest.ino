@@ -233,7 +233,7 @@ unsigned long testFilledRects(uint16_t color1, uint16_t color2) {
                 cy = tft.height() / 2 - 1;
 
   tft.fillScreen(ILI9341_BLACK);
-  n = min(tft.width(), tft.height());
+  n = min(tft.width(), tft.height()) - 1;
   for(i=n; i>0; i-=6) {
     i2    = i / 2;
     start = micros();
@@ -324,7 +324,7 @@ unsigned long testRoundRects() {
                 cy = tft.height() / 2 - 1;
 
   tft.fillScreen(ILI9341_BLACK);
-  w     = min(tft.width(), tft.height());
+  w     = min(tft.width(), tft.height()) - 1;
   start = micros();
   for(i=0; i<w; i+=6) {
     i2 = i / 2;
@@ -342,7 +342,7 @@ unsigned long testFilledRoundRects() {
 
   tft.fillScreen(ILI9341_BLACK);
   start = micros();
-  for(i=min(tft.width(), tft.height()); i>20; i-=6) {
+  for(i=min(tft.width(), tft.height()) - 1; i>20; i-=6) {
     i2 = i / 2;
     tft.fillRoundRect(cx-i2, cy-i2, i, i, i/8, tft.color565(0, i, 0));
   }

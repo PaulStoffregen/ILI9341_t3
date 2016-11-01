@@ -16,6 +16,38 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
+// <SoftEgg>
+
+//Additional graphics routines by Tim Trzepacz, SoftEgg LLC added December 2015
+//(And then accidentally deleted and rewritten March 2016. Oops!)
+//Gradient support 
+//----------------
+//		fillRectVGradient	- fills area with vertical gradient
+//		fillRectHGradient	- fills area with horizontal gradient
+//		fillScreenVGradient - fills screen with vertical gradient
+// 	fillScreenHGradient - fills screen with horizontal gradient
+
+//Additional Color Support
+//------------------------
+//		color565toRGB		- converts 565 format 16 bit color to RGB
+//		color565toRGB14		- converts 16 bit 565 format color to 14 bit RGB (2 bits clear for math and sign)
+//		RGB14tocolor565		- converts 14 bit RGB back to 16 bit 565 format color
+
+//Low Memory Bitmap Support
+//-------------------------
+// 		writeRect8BPP - 	write 8 bit per pixel paletted bitmap
+// 		writeRect4BPP - 	write 4 bit per pixel paletted bitmap
+// 		writeRect2BPP - 	write 2 bit per pixel paletted bitmap
+// 		writeRect1BPP - 	write 1 bit per pixel paletted bitmap
+
+//TODO: transparent bitmap writing routines for sprites
+
+//String Pixel Length support 
+//---------------------------
+//		strPixelLen			- gets pixel length of given ASCII string
+
+// <\SoftEgg>
+
 #include "ILI9341_t3.h"
 #include <SPI.h>
 
@@ -138,6 +170,90 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	SPI.endTransaction();
 }
 
+// fillRectVGradient	- fills area with vertical gradient
+void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2)
+{
+	// rudimentary clipping (drawChar w/big text requires this)
+	if((x >= _width) || (y >= _height)) return;
+	if((x + w - 1) >= _width)  w = _width  - x;
+	if((y + h - 1) >= _height) h = _height - y;
+	
+	int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
+	color565toRGB14(color1,r1,g1,b1);
+	color565toRGB14(color2,r2,g2,b2);
+	dr=(r2-r1)/h; dg=(g2-g1)/h; db=(b2-b1)/h;
+	r=r1;g=g1;b=b1;	
+
+	// TODO: this can result in a very long transaction time
+	// should break this into multiple transactions, even though
+	// it'll cost more overhead, so we don't stall other SPI libs
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	for(y=h; y>0; y--) {
+		uint16_t color = RGB14tocolor565(r,g,b);
+
+		for(x=w; x>1; x--) {
+			writedata16_cont(color);
+		}
+		writedata16_last(color);
+		if (y > 1 && (y & 1)) {
+			SPI.endTransaction();
+			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		}
+		r+=dr;g+=dg; b+=db;
+	}
+	SPI.endTransaction();
+}
+
+// fillRectHGradient	- fills area with horizontal gradient
+void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2)
+{
+	// rudimentary clipping (drawChar w/big text requires this)
+	if((x >= _width) || (y >= _height)) return;
+	if((x + w - 1) >= _width)  w = _width  - x;
+	if((y + h - 1) >= _height) h = _height - y;
+	
+	int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
+	color565toRGB14(color1,r1,g1,b1);
+	color565toRGB14(color2,r2,g2,b2);
+	dr=(r2-r1)/h; dg=(g2-g1)/h; db=(b2-b1)/h;
+	r=r1;g=g1;b=b1;	
+
+	// TODO: this can result in a very long transaction time
+	// should break this into multiple transactions, even though
+	// it'll cost more overhead, so we don't stall other SPI libs
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	for(y=h; y>0; y--) {
+		uint16_t color;
+		for(x=w; x>1; x--) {
+			color = RGB14tocolor565(r,g,b);
+			writedata16_cont(color);
+			r+=dr;g+=dg; b+=db;
+		}
+		writedata16_last(color);
+		if (y > 1 && (y & 1)) {
+			SPI.endTransaction();
+			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		}
+		r=r1;g=g1;b=b1;
+	}
+	SPI.endTransaction();
+}
+
+// fillScreenVGradient - fills screen with vertical gradient
+void ILI9341_t3::fillScreenVGradient(uint16_t color1, uint16_t color2)
+{
+	fillRectVGradient(0,0,_width,_height,color1,color2);
+}
+
+// fillScreenHGradient - fills screen with horizontal gradient
+void ILI9341_t3::fillScreenHGradient(uint16_t color1, uint16_t color2)
+{
+	fillRectHGradient(0,0,_width,_height,color1,color2);
+}
 
 
 #define MADCTL_MY  0x80
@@ -376,6 +492,100 @@ void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 	SPI.endTransaction();
 }
 
+// writeRect8BPP - 	write 8 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, one byte per pixel
+//					color palette data in array at palette
+void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
+{
+   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	for(y=h; y>0; y--) {
+		for(x=w; x>1; x--) {
+			writedata16_cont(palette[*pixels++]);
+		}
+		writedata16_last(palette[*pixels++]);
+	}
+	SPI.endTransaction();
+}
+
+// writeRect4BPP - 	write 4 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, 4 bits per pixel
+//					color palette data in array at palette
+//					width must be at least 2 pixels
+void ILI9341_t3::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
+{
+   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	for(y=h; y>0; y--) {
+		for(x=w; x>2; x-=2) {
+			writedata16_cont(palette[((*pixels)>>4)&0xF]);
+			writedata16_cont(palette[(*pixels++)&0xF]);
+		}
+		writedata16_cont(palette[((*pixels)>>4)&0xF]);
+		writedata16_last(palette[(*pixels++)&0xF]);
+	}
+	SPI.endTransaction();
+}
+
+// writeRect2BPP - 	write 2 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, 4 bits per pixel
+//					color palette data in array at palette
+//					width must be at least 4 pixels
+void ILI9341_t3::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
+{
+   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	for(y=h; y>0; y--) {
+		for(x=w; x>4; x-=4) {
+			//unrolled loop might be faster?
+			writedata16_cont(palette[((*pixels)>>6)&0x3]);
+			writedata16_cont(palette[((*pixels)>>4)&0x3]);
+			writedata16_cont(palette[((*pixels)>>2)&0x3]);
+			writedata16_cont(palette[(*pixels++)&0x3]);
+		}
+		writedata16_cont(palette[((*pixels)>>6)&0x3]);
+		writedata16_cont(palette[((*pixels)>>4)&0x3]);
+		writedata16_cont(palette[((*pixels)>>2)&0x3]);
+		writedata16_last(palette[(*pixels++)&0x3]);
+	}
+	SPI.endTransaction();
+}
+
+// writeRect1BPP - 	write 1 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, 4 bits per pixel
+//					color palette data in array at palette
+//					width must be at least 8 pixels
+void ILI9341_t3::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
+{
+   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	for(y=h; y>0; y--) {
+		for(x=w; x>8; x-=8) {
+			//unrolled loop might be faster?
+			writedata16_cont(palette[((*pixels)>>7)&0x1]);
+			writedata16_cont(palette[((*pixels)>>6)&0x1]);
+			writedata16_cont(palette[((*pixels)>>5)&0x1]);
+			writedata16_cont(palette[((*pixels)>>4)&0x1]);
+			writedata16_cont(palette[((*pixels)>>3)&0x1]);
+			writedata16_cont(palette[((*pixels)>>2)&0x1]);
+			writedata16_cont(palette[((*pixels)>>1)&0x1]);
+			writedata16_cont(palette[(*pixels++)&0x1]);
+		}
+		writedata16_cont(palette[((*pixels)>>7)&0x1]);
+		writedata16_cont(palette[((*pixels)>>6)&0x1]);
+		writedata16_cont(palette[((*pixels)>>5)&0x1]);
+		writedata16_cont(palette[((*pixels)>>4)&0x1]);
+		writedata16_cont(palette[((*pixels)>>3)&0x1]);
+		writedata16_cont(palette[((*pixels)>>2)&0x1]);
+		writedata16_cont(palette[((*pixels)>>1)&0x1]);
+		writedata16_last(palette[(*pixels++)&0x1]);
+	}
+	SPI.endTransaction();
+}
 
 
 static const uint8_t init_commands[] = {
@@ -849,7 +1059,7 @@ size_t ILI9341_t3::write(uint8_t c)
 {
 	if (font) {
 		if (c == '\n') {
-			//cursor_y += ??
+			cursor_y += font->line_space; // Fix linefeed. Added by T.T., SoftEgg
 			cursor_x = 0;
 		} else {
 			drawFontChar(c);
@@ -1138,6 +1348,83 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 			//break;
 		//}
 	}
+}
+
+//strPixelLen			- gets pixel length of given ASCII string
+int16_t ILI9341_t3::strPixelLen(char * str)
+{
+//	Serial.printf("strPixelLen %s\n", str);
+	if (!str) return(0);
+	uint16_t len=0, maxlen=0;
+	while (*str)
+	{
+		if (*str=='\n')
+		{
+			if ( len > maxlen )
+			{
+				maxlen=len;
+				len=0;
+			}
+		}
+		else
+		{
+			if (!font)
+			{
+				len+=textsize*6;
+			}
+			else
+			{
+
+				uint32_t bitoffset;
+				const uint8_t *data;
+				uint16_t c = *str;
+
+//				Serial.printf("char %c(%d)\n", c,c);
+
+				if (c >= font->index1_first && c <= font->index1_last) {
+					bitoffset = c - font->index1_first;
+					bitoffset *= font->bits_index;
+				} else if (c >= font->index2_first && c <= font->index2_last) {
+					bitoffset = c - font->index2_first + font->index1_last - font->index1_first + 1;
+					bitoffset *= font->bits_index;
+				} else if (font->unicode) {
+					continue;
+				} else {
+					continue;
+				}
+				//Serial.printf("  index =  %d\n", fetchbits_unsigned(font->index, bitoffset, font->bits_index));
+				data = font->data + fetchbits_unsigned(font->index, bitoffset, font->bits_index);
+
+				uint32_t encoding = fetchbits_unsigned(data, 0, 3);
+				if (encoding != 0) continue;
+//				uint32_t width = fetchbits_unsigned(data, 3, font->bits_width);
+//				Serial.printf("  width =  %d\n", width);
+				bitoffset = font->bits_width + 3;
+				bitoffset += font->bits_height;
+
+//				int32_t xoffset = fetchbits_signed(data, bitoffset, font->bits_xoffset);
+//				Serial.printf("  xoffset =  %d\n", xoffset);
+				bitoffset += font->bits_xoffset;
+				bitoffset += font->bits_yoffset;
+
+				uint32_t delta = fetchbits_unsigned(data, bitoffset, font->bits_delta);
+				bitoffset += font->bits_delta;
+//				Serial.printf("  delta =  %d\n", delta);
+
+				len += delta;//+width-xoffset;
+//				Serial.printf("  len =  %d\n", len);
+				if ( len > maxlen )
+				{
+					maxlen=len;
+//					Serial.printf("  maxlen =  %d\n", maxlen);
+				}
+			
+			}
+		}
+		str++;
+	}
+//	Serial.printf("Return  maxlen =  %d\n", maxlen);
+	return( maxlen );
 }
 
 void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat)

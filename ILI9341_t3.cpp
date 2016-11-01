@@ -1816,7 +1816,8 @@ void ILI9341_t3::drawText(const char* text, const char* wrapChars) {
         // don't wrap to the left, wrap to the original spot
         if (wrap && text[i] == '\n') {
           cursor_x = origx;
-          cursor_y += fontLineSpace();
+          // disable this here, write() now moves down
+          // cursor_y += fontLineSpace();
         }
         i++;
       }

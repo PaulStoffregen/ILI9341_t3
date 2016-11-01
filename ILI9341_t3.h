@@ -16,6 +16,36 @@
   MIT license, all text above must be included in any redistribution
  ****************************************************/
 
+// <SoftEgg>
+
+//Additional graphics routines by Tim Trzepacz, SoftEgg LLC added December 2015
+//(And then accidentally deleted and rewritten March 2016. Oops!)
+//Gradient support
+//----------------
+//		fillRectVGradient	- fills area with vertical gradient
+//		fillRectHGradient	- fills area with horizontal gradient
+//		fillScreenVGradient - fills screen with vertical gradient
+// 	fillScreenHGradient - fills screen with horizontal gradient
+
+//Additional Color Support
+//------------------------
+//		color565toRGB		- converts 565 format 16 bit color to RGB
+//		color565toRGB14		- converts 16 bit 565 format color to 14 bit RGB (2 bits clear for math and sign)
+//		RGB14tocolor565		- converts 14 bit RGB back to 16 bit 565 format color
+
+//Low Memory Bitmap Support
+//-------------------------
+// writeRect8BPP - 	write 8 bit per pixel paletted bitmap
+// writeRect4BPP - 	write 4 bit per pixel paletted bitmap
+// writeRect2BPP - 	write 2 bit per pixel paletted bitmap
+// writeRect1BPP - 	write 1 bit per pixel paletted bitmap
+
+//String Pixel Length support
+//---------------------------
+//		strPixelLen			- gets pixel length of given ASCII string
+
+// <\SoftEgg>
+
 #ifndef _ILI9341_t3H_
 #define _ILI9341_t3H_
 
@@ -105,6 +135,9 @@
 #define ILI9341_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
 #define ILI9341_PINK        0xF81F
 
+#define CL(_r,_g,_b) ((((_r)&0xF8)<<8)|(((_g)&0xFC)<<3)|((_b)>>3))
+
+#define sint16_t int16_t
 
 typedef struct {
 	const unsigned char *index;
@@ -143,6 +176,12 @@ class ILI9341_t3 : public Print
 	void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t* colors);
 	void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t* colors);
 	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+
+	void fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
+	void fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
+	void fillScreenVGradient(uint16_t color1, uint16_t color2);
+	void fillScreenHGradient(uint16_t color1, uint16_t color2);
+
 	void setRotation(uint8_t r);
 	void setScroll(uint16_t offset);
 	void invertDisplay(boolean i);
@@ -152,6 +191,28 @@ class ILI9341_t3 : public Print
 		return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 	}
 
+	//color565toRGB		- converts 565 format 16 bit color to RGB
+	static void color565toRGB(uint16_t color, uint8_t &r, uint8_t &g, uint8_t &b) {
+		r = (color>>8)&0x00F8;
+		g = (color>>3)&0x00FC;
+		b = (color<<3)&0x00F8;
+	}
+
+	//color565toRGB14		- converts 16 bit 565 format color to 14 bit RGB (2 bits clear for math and sign)
+	//returns 00rrrrr000000000,00gggggg00000000,00bbbbb000000000
+	//thus not overloading sign, and allowing up to double for additions for fixed point delta
+	static void color565toRGB14(uint16_t color, int16_t &r, int16_t &g, int16_t &b) {
+		r = (color>>2)&0x3E00;
+		g = (color<<3)&0x3F00;
+		b = (color<<9)&0x3E00;
+	}
+
+	//RGB14tocolor565		- converts 14 bit RGB back to 16 bit 565 format color
+	static uint16_t RGB14tocolor565(int16_t r, int16_t g, int16_t b)
+	{
+		return (((r & 0x3E00) << 2) | ((g & 0x3F00) >>3) | ((b & 0x3E00) >> 9));
+	}
+
 	//uint8_t readdata(void);
 	uint8_t readcommand8(uint8_t reg, uint8_t index = 0);
 
@@ -159,6 +220,29 @@ class ILI9341_t3 : public Print
 	uint16_t readPixel(int16_t x, int16_t y);
 	void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
 	void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors);
+
+	// writeRect8BPP - 	write 8 bit per pixel paletted bitmap
+	//					bitmap data in array at pixels, one byte per pixel
+	//					color palette data in array at palette
+	void writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette );
+
+	// writeRect4BPP - 	write 4 bit per pixel paletted bitmap
+	//					bitmap data in array at pixels, 4 bits per pixel
+	//					color palette data in array at palette
+	//					width must be at least 2 pixels
+	void writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette );
+
+	// writeRect2BPP - 	write 2 bit per pixel paletted bitmap
+	//					bitmap data in array at pixels, 4 bits per pixel
+	//					color palette data in array at palette
+	//					width must be at least 4 pixels
+	void writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette );
+
+	// writeRect1BPP - 	write 1 bit per pixel paletted bitmap
+	//					bitmap data in array at pixels, 4 bits per pixel
+	//					color palette data in array at palette
+	//					width must be at least 8 pixels
+	void writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette );
 
 	// from Adafruit_GFX.h
 	void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
@@ -175,6 +259,7 @@ class ILI9341_t3 : public Print
 	void draw8Bitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint8_t transparent);
 	void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
 	void setCursor(int16_t x, int16_t y);
+    void getCursor(int16_t *x, int16_t *y);
 	void setTextColor(uint16_t c);
 	void setTextColor(uint16_t c, uint16_t bg);
 	void setTextSize(uint8_t s);
@@ -213,6 +298,7 @@ class ILI9341_t3 : public Print
   const char* lineBreakChars = " -";
   uint16_t measureTextWidth(const char* text);
   uint16_t measureTextHeight(const char* text);
+	int16_t strPixelLen(char * str);
 
  protected:
 	int16_t _width, _height; // Display w/h as modified by current rotation
@@ -340,7 +426,6 @@ class ILI9341_t3 : public Print
     if(y < _displayclipy1) { h = h - (_displayclipy1 - y); y = _displayclipy1;}
     if((y+h-1) >= _displayclipy2) h = _displayclipy2-y;
     if(h<1) return;
-
 
 		setAddr(x, y, x, y+h-1);
 		writecommand_cont(ILI9341_RAMWR);

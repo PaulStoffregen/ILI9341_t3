@@ -293,6 +293,7 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 			writedata16_cont(color);
 			r+=dr;g+=dg; b+=db;
 		}
+		color = RGB14tocolor565(r,g,b);
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();

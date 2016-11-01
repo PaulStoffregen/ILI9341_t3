@@ -75,7 +75,8 @@ void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
 	// Rudimentary clipping
-	if((x >= _width) || (y >= _height)) return;
+	if((x >= _width) || (x < 0) || (y >= _height)) return;
+	if(y < 0) {	h += y; y = 0; 	}
 	if((y+h-1) >= _height) h = _height-y;
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y+h-1);
@@ -90,7 +91,8 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
 	// Rudimentary clipping
-	if((x >= _width) || (y >= _height)) return;
+	if((x >= _width) || (y >= _height) || (y < 0)) return;
+	if(x < 0) {	w += x; x = 0; 	}
 	if((x+w-1) >= _width)  w = _width-x;
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y);
@@ -112,6 +114,8 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 {
 	// rudimentary clipping (drawChar w/big text requires this)
 	if((x >= _width) || (y >= _height)) return;
+	if(x < 0) {	w += x; x = 0; 	}
+	if(y < 0) {	h += y; y = 0; 	}
 	if((x + w - 1) >= _width)  w = _width  - x;
 	if((y + h - 1) >= _height) h = _height - y;
 

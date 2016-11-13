@@ -217,7 +217,7 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
 	color565toRGB14(color1,r1,g1,b1);
 	color565toRGB14(color2,r2,g2,b2);
-	dr=(r2-r1)/h; dg=(g2-g1)/h; db=(b2-b1)/h;
+	dr=(r2-r1)/w; dg=(g2-g1)/w; db=(b2-b1)/w;
 	r=r1;g=g1;b=b1;	
 
 	// TODO: this can result in a very long transaction time

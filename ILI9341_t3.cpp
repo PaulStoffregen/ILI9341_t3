@@ -76,6 +76,9 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
 	font      = NULL;
+    _utf8_buffer = 0;
+    _utf8_state = UTF8_STATE::UTF8_INVALID;
+    _utf8_byte_count = 0;
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -177,12 +180,12 @@ void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	if((x >= _width) || (y >= _height)) return;
 	if((x + w - 1) >= _width)  w = _width  - x;
 	if((y + h - 1) >= _height) h = _height - y;
-	
+
 	int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
 	color565toRGB14(color1,r1,g1,b1);
 	color565toRGB14(color2,r2,g2,b2);
 	dr=(r2-r1)/h; dg=(g2-g1)/h; db=(b2-b1)/h;
-	r=r1;g=g1;b=b1;	
+	r=r1;g=g1;b=b1;
 
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
@@ -213,12 +216,12 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	if((x >= _width) || (y >= _height)) return;
 	if((x + w - 1) >= _width)  w = _width  - x;
 	if((y + h - 1) >= _height) h = _height - y;
-	
+
 	int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
 	color565toRGB14(color1,r1,g1,b1);
 	color565toRGB14(color2,r2,g2,b2);
 	dr=(r2-r1)/h; dg=(g2-g1)/h; db=(b2-b1)/h;
-	r=r1;g=g1;b=b1;	
+	r=r1;g=g1;b=b1;
 
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
@@ -673,7 +676,7 @@ void ILI9341_t3::begin(void)
 	writecommand_last(ILI9341_SLPOUT);    // Exit Sleep
 	SPI.endTransaction();
 
-	delay(120); 		
+	delay(120);
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writecommand_last(ILI9341_DISPON);    // Display on
 	SPI.endTransaction();
@@ -1063,7 +1066,11 @@ size_t ILI9341_t3::write(uint8_t c)
 			cursor_y += font->line_space; // Fix linefeed. Added by T.T., SoftEgg
 			cursor_x = 0;
 		} else {
-			drawFontChar(c);
+            nextUTF8State(c);
+
+            if (_utf8_state == UTF8_END) {
+			    drawFontChar(_utf8_buffer);
+            }
 		}
 	} else {
 		if (c == '\n') {
@@ -1250,14 +1257,20 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 
 	//Serial.printf("drawFontChar %d\n", c);
 
-	if (c >= font->index1_first && c <= font->index1_last) {
+	if (font->unicode) {
+		uint16_t table_length = (font->index1_first << 8) | font->index1_last;
+		uint16_t index = binarySearch(reinterpret_cast<const uint8_t*>(font->unicode), table_length, c);
+		if (index == 0xffff) {
+			index = 0;
+		}
+
+		bitoffset = index * font->bits_index;
+	} else if (c >= font->index1_first && c <= font->index1_last) {
 		bitoffset = c - font->index1_first;
 		bitoffset *= font->bits_index;
 	} else if (c >= font->index2_first && c <= font->index2_last) {
 		bitoffset = c - font->index2_first + font->index1_last - font->index1_first + 1;
 		bitoffset *= font->bits_index;
-	} else if (font->unicode) {
-		return; // TODO: implement sparse unicode
 	} else {
 		return;
 	}
@@ -1419,7 +1432,7 @@ int16_t ILI9341_t3::strPixelLen(char * str)
 					maxlen=len;
 //					Serial.printf("  maxlen =  %d\n", maxlen);
 				}
-			
+
 			}
 		}
 		str++;
@@ -1455,12 +1468,12 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 	int w = 0;
 	do {
 		uint32_t x1 = x;
-		uint32_t n = numbits;		
-		
+		uint32_t n = numbits;
+
 		writecommand_cont(ILI9341_PASET); // Row addr set
 		writedata16_cont(y);   // YSTART
-		writedata16_cont(y);   // YEND	
-		
+		writedata16_cont(y);   // YEND
+
 		do {
 			n--;
 			if (bits & (1 << n)) {
@@ -1470,14 +1483,14 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 				// "drawFastHLine(x1 - w, y, w, textcolor)"
 				writecommand_cont(ILI9341_CASET); // Column addr set
 				writedata16_cont(x1 - w);   // XSTART
-				writedata16_cont(x1);   // XEND					
+				writedata16_cont(x1);   // XEND
 				writecommand_cont(ILI9341_RAMWR);
 				while (w-- > 1) { // draw line
 					writedata16_cont(textcolor);
 				}
 				writedata16_last(textcolor);
 			}
-						
+
 			x1++;
 		} while (n > 0);
 
@@ -1486,13 +1499,13 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 				writecommand_cont(ILI9341_CASET); // Column addr set
 				writedata16_cont(x1 - w);   // XSTART
 				writedata16_cont(x1);   // XEND
-				writecommand_cont(ILI9341_RAMWR);				
+				writecommand_cont(ILI9341_RAMWR);
 				while (w-- > 1) { //draw line
 					writedata16_cont(textcolor);
 				}
 				writedata16_last(textcolor);
 		}
-		
+
 		y++;
 		repeat--;
 	} while (repeat);
@@ -1549,8 +1562,8 @@ uint8_t ILI9341_t3::getRotation(void) {
 void ILI9341_t3::sleep(bool enable) {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	if (enable) {
-		writecommand_cont(ILI9341_DISPOFF);		
-		writecommand_last(ILI9341_SLPIN);	
+		writecommand_cont(ILI9341_DISPOFF);
+		writecommand_last(ILI9341_SLPIN);
 		  SPI.endTransaction();
 	} else {
 		writecommand_cont(ILI9341_DISPON);
@@ -1558,6 +1571,81 @@ void ILI9341_t3::sleep(bool enable) {
 		SPI.endTransaction();
 		delay(5);
 	}
+}
+
+uint16_t ILI9341_t3::binarySearch(const uint8_t* data, const uint16_t length, const uint32_t value) {
+	if (data == NULL) {
+		return 0xffff;
+	}
+
+	if (value < fetchbits_unsigned(data, 0, 21) || value > fetchbits_unsigned(data, (length - 1) * 21, 21)) {
+		return 0xffff;
+	}
+
+	uint16_t low = 0;
+	uint16_t high = length - 1;
+
+	while (low <= high) {
+		uint16_t middle = (low + high) >> 1;
+
+		uint32_t d = fetchbits_unsigned(data, middle * 21, 21);
+
+		if (d > value) {
+			high = middle - 1;
+		} else if (d < value) {
+			low = middle + 1;
+		} else {
+			return middle;
+		}
+	}
+
+	return 0xffff;
+}
+
+void ILI9341_t3::nextUTF8State(const uint8_t c) {
+    if (c < 128) {
+        _utf8_state = UTF8_END;
+        _utf8_byte_count = 0;
+        _utf8_buffer = c;
+        return;
+    }
+
+    if (_utf8_state == UTF8_INVALID || _utf8_state == UTF8_END) {
+        if ((c & 0xe0) == 0xc0) {
+            _utf8_byte_count = 1;
+            _utf8_state = UTF8_VALID;
+            _utf8_buffer = c & 0x1f;
+        } else if ((c & 0xf0) == 0xe0) {
+            _utf8_byte_count = 2;
+            _utf8_state = UTF8_VALID;
+            _utf8_buffer = c & 0x0f;
+        } else if ((c & 0xf8) == 0xf0) {
+            _utf8_byte_count = 3;
+            _utf8_state = UTF8_VALID;
+            _utf8_buffer = c & 0x07;
+        } else {
+            _utf8_state = UTF8_INVALID;
+        }
+
+        return;
+    }
+
+    if (_utf8_state == UTF8_VALID) {
+        if ((c & 0xc0) == 0x80) {
+            _utf8_buffer = (_utf8_buffer << 6) | (c & 0x3f);
+            --_utf8_byte_count;
+
+            if (_utf8_byte_count == 0) {
+                _utf8_state = UTF8_END;
+            }
+        } else {
+            _utf8_byte_count = 0;
+            _utf8_buffer = 0;
+            _utf8_state = UTF8_INVALID;
+        }
+
+        return;
+    }
 }
 
 void Adafruit_GFX_Button::initButton(ILI9341_t3 *gfx,

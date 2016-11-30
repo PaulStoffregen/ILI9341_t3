@@ -54,7 +54,7 @@
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock
 #define SPICLOCK 30000000
-
+#define SPICLOCK_READ 2000000
 #define WIDTH  ILI9341_TFTWIDTH
 #define HEIGHT ILI9341_TFTHEIGHT
 
@@ -405,7 +405,7 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
 
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPICLOCK_READ, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
@@ -415,9 +415,9 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
 	waitFifoEmpty();    // wait for both queues to be empty.
 
-	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+	KINETISK_SPI0.PUSHR = 0x3f | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	KINETISK_SPI0.PUSHR = 0x3f | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+	KINETISK_SPI0.PUSHR = 0x3f | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
 
 	// Wait for End of Queue
 	while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
@@ -438,9 +438,9 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 {
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
-	uint16_t c = w * h;
+	uint32_t c = w * h;
 
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPICLOCK_READ, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
@@ -454,9 +454,9 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 	c *= 3; // number of bytes we will transmit to the display
 	while (c--) {
         	if (c) {
-            		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+            		KINETISK_SPI0.PUSHR = 0x3f | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
         	} else {
-            		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+            		KINETISK_SPI0.PUSHR = 0x3f | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
 		}
 
 		// If last byte wait until all have come in...

@@ -436,45 +436,55 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 // Now lets see if we can read in multiple pixels
 void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors)
 {
-	uint8_t dummy __attribute__((unused));
-	uint8_t r,g,b;
-	uint16_t c = w * h;
+	uint8_t rgb[3];               // RGB bytes received from the display
+	uint8_t rgbIdx = 0;
+	uint32_t txCount = w * h * 3; // number of bytes we will transmit to the display
+	uint32_t rxCount = txCount;   // number of bytes we will receive back from the display
 
 	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
 
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
-	waitTransmitComplete();
-	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT | SPI_PUSHR_EOQ;
+
+	// transmit a DUMMY byte before the color bytes
+	KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+
+	// skip values returned by the queued up transfers and the current in-flight transfer
+	uint32_t sr = KINETISK_SPI0.SR;
+	uint8_t skipCount = ((sr >> 4) & 0xF) + ((sr >> 12) & 0xF) + 1;
+
+	while (txCount || rxCount) {
+		// transmit another byte if possible
+		if (txCount && (KINETISK_SPI0.SR & (15 << 12)) <= (3 << 12)) {
+			txCount--;
+			if (txCount) {
+				KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
+			} else {
+				KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
+			}
+		}
+
+		// receive another byte if possible, and either skip it or store the color
+		if (rxCount && (KINETISK_SPI0.SR & 0xF0)) {
+			rgb[rgbIdx] = KINETISK_SPI0.POPR;
+
+			if (skipCount) {
+				skipCount--;
+			} else {
+				rxCount--;
+				rgbIdx++;
+				if (rgbIdx == 3) {
+					rgbIdx = 0;
+					*pcolors++ = color565(rgb[0], rgb[1], rgb[2]);
+				}
+			}
+		}
+	}
+
+	// wait for End of Queue
 	while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
 	KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
-	while ((KINETISK_SPI0.SR & 0xf0)) {
-		dummy = KINETISK_SPI0.POPR;	// Read a DUMMY byte but only once
-	}
-	c *= 3; // number of bytes we will transmit to the display
-	while (c--) {
-        	if (c) {
-            		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_CONT;
-        	} else {
-            		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0)| SPI_PUSHR_EOQ;
-		}
 
-		// If last byte wait until all have come in...
-		if (c == 0) {
-			while ((KINETISK_SPI0.SR & SPI_SR_EOQF) == 0) ;
-			KINETISK_SPI0.SR = SPI_SR_EOQF;  // make sure it is clear
-		}
-
-		if ((KINETISK_SPI0.SR & 0xf0) >= 0x30) { // do we have at least 3 bytes in queue if so extract...
-			r = KINETISK_SPI0.POPR;		// Read a RED byte of GRAM
-			g = KINETISK_SPI0.POPR;		// Read a GREEN byte of GRAM
-			b = KINETISK_SPI0.POPR;		// Read a BLUE byte of GRAM
-			*pcolors++ = color565(r,g,b);
-		}
-
-		// like waitFiroNotFull but does not pop our return queue
-		while ((KINETISK_SPI0.SR & (15 << 12)) > (3 << 12)) ;
-	}
 	SPI.endTransaction();
 }
 

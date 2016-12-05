@@ -120,6 +120,21 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	SPI.endTransaction();
 }
 
+void ILI9341_t3::drawFastVLineFromBuffer(int16_t x, int16_t y, int16_t h, const uint16_t *colors)
+{
+	// Rudimentary clipping
+	if((x >= _width) || (y >= _height)) return;
+	if((y+h-1) >= _height) h = _height-y;
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x, y+h-1);
+	writecommand_cont(ILI9341_RAMWR);
+	while (h-- > 1) {
+		writedata16_cont(colors[h]);
+	}
+	writedata16_last(colors[h]);
+	SPI.endTransaction();
+}
+
 void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
 	// Rudimentary clipping
@@ -133,6 +148,21 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 		writedata16_cont(color);
 	}
 	writedata16_last(color);
+	SPI.endTransaction();
+}
+
+void ILI9341_t3::drawFastHLineFromBuffer(int16_t x, int16_t y, int16_t w, const uint16_t *colors)
+{
+	// Rudimentary clipping
+	if((x >= _width) || (y >= _height)) return;
+	if((x+w-1) >= _width)  w = _width-x;
+	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	setAddr(x, y, x+w-1, y);
+	writecommand_cont(ILI9341_RAMWR);
+	while (w-- > 1) {
+		writedata16_cont(colors[w]);
+	}
+	writedata16_last(colors[w]);
 	SPI.endTransaction();
 }
 

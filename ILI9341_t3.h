@@ -469,6 +469,10 @@ class ILI9341_t3 : public Print
 #define swap(a, b) { typeof(a) t = a; a = b; b = t; }
 #endif
 
+// To avoid conflict when also using Adafruit_GFX or any Adafruit library
+// which depends on Adafruit_GFX, #include the Adafruit library *BEFORE*
+// you #include ILI9341_t3.h.
+#ifndef _ADAFRUIT_GFX_H
 class Adafruit_GFX_Button {
 public:
 	Adafruit_GFX_Button(void) { _gfx = NULL; }
@@ -494,6 +498,7 @@ private:
 	char _label[10];
 	boolean currstate, laststate;
 };
+#endif
 
 #endif // __cplusplus
 

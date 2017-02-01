@@ -159,6 +159,16 @@ typedef struct {
 	unsigned char cap_height;
 } ILI9341_t3_font_t;
 
+enum alignment_t {
+  ALIGN_LEFT = 1,
+  ALIGN_HCENTER = 2,
+  ALIGN_CENTER = 2,  // an alias for ALIGN_HCENTER
+  ALIGN_RIGHT = 4,
+
+  ALIGN_TOP = 8,
+  ALIGN_VCENTER = 16,
+  ALIGN_BOTTOM = 32
+};
 
 #ifdef __cplusplus
 
@@ -267,6 +277,9 @@ class ILI9341_t3 : public Print
 	void setTextWrap(boolean w);
 	boolean getTextWrap();
 
+  // sets the string containing the chars where soft-wrap is allowed
+  //  const char* setTextSoftWrapChars(const char* wrapChars);
+
   // setOrigin sets an offset in display pixels where drawing to (0,0) will appear
   // for example: setOrigin(10,10); drawPixel(5,5); will cause a pixel to be drawn at hardware pixel (15,15)
   void setOrigin(int16_t x = 0, int16_t y = 0) { _originx = x; _originy = y; updateDisplayClip();}
@@ -294,10 +307,13 @@ class ILI9341_t3 : public Print
   uint16_t fontLineSpace() { return font->line_space; }
   uint16_t fontGap() { return font->line_space - font->cap_height; };
 
-  void drawText(const char* text, const char* wrapChars = nullptr);
-  const char* lineBreakChars = " -";
-  uint16_t measureTextWidth(const char* text);
-  uint16_t measureTextHeight(const char* text);
+  alignment_t setTextAlign(alignment_t align) { alignment_t oldalign = _textalign; _textalign = align; return oldalign; }
+  alignment_t getTextAlign() { return _textalign; }
+
+  void drawText(const char* text);
+
+  uint16_t measureTextWidth(const char* text, int chars = 0);
+  uint16_t measureTextHeight(const char* text, int chars = 0);
 	int16_t strPixelLen(char * str);
 
  protected:
@@ -322,6 +338,9 @@ class ILI9341_t3 : public Print
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display
 	const ILI9341_t3_font_t *font;
+	alignment_t _textalign = (alignment_t )(ALIGN_LEFT + ALIGN_TOP);
+
+	//const char* _textsoftwrapchars;
 
   	uint8_t  _rst;
   	uint8_t _cs, _dc;

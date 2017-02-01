@@ -208,8 +208,8 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	if((x >= _displayclipx2) || (y >= _displayclipy2)) return;
 	if((x + w - 1) >= _displayclipx2)  w = _displayclipx2  - x;
 	if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
-	if(x < _displayclipx1) x = _displayclipx1;
-	if(y < _displayclipy1) y = _displayclipy1;
+	if(x < _displayclipx1) { x = _displayclipx1; w -= _displayclipx1-x; }
+	if(y < _displayclipy1) { y = _displayclipy1; h -= _displayclipy1-y; }
 
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
@@ -1804,71 +1804,56 @@ boolean ILI9341_t3::getTextWrap()
 }
 
 
-void ILI9341_t3::drawText(const char* text, const char* wrapChars) {
+void ILI9341_t3::drawText(const char* text) {
+  int16_t orig_x = cursor_x;
+  const char* currentchar = text;
+  const char* nextline;
 
-    if (!wrapChars) {
-      int16_t origx = cursor_x;
-
-      int i = 0;
-      while (text[i] != 0) {
-        write(text[i]);
-
-        // don't wrap to the left, wrap to the original spot
-        if (wrap && text[i] == '\n') {
-          cursor_x = origx;
-          // disable this here, write() now moves down
-          // cursor_y += fontLineSpace();
-        }
-        i++;
-      }
+  do {
+    nextline = strchr(currentchar, '\n');
+    int linelen;
+    if (nextline) {
+      nextline++;
+      linelen = nextline - currentchar;
     } else {
-    int i = 0;
-
-    int16_t left = getCursorX();
-    int16_t right = _clipx2;
-    int textlen = strlen(text);
-    while (i < textlen) {
-      int16_t x = getCursorX();
-
-      const char* curPos = text+i;
-
-      int j = 0;
-      const char* nextWord = curPos + strlen(curPos);
-      while (wrapChars[j]) {
-        const char* nextWrapChar = strchr(curPos, wrapChars[j]);
-        if (nextWrapChar) {
-          nextWord = min(nextWord, nextWrapChar);
-        }
-        j++;
-      }
-
-      int wordLen = nextWord - curPos + 1;
-
-      char curWord[wordLen+1];
-      strncpy(curWord, curPos, wordLen);
-      curWord[wordLen] = 0;
-
-      if (x+measureTextWidth(curWord) > right) {
-        setCursor(left, getCursorY()+fontLineSpace());
-      }
-
-      drawText(curWord);
-      i+=wordLen;
+      linelen = strlen(currentchar);
     }
-  }
+
+    if (getTextAlign() & ALIGN_CENTER) {
+      cursor_x = orig_x - measureTextWidth(currentchar, linelen)/2;
+    } else if (getTextAlign() & ALIGN_RIGHT) {
+      cursor_x = orig_x - measureTextWidth(currentchar, linelen);
+    } else {
+      // default to left alignment
+      cursor_x = orig_x;
+    }
+
+    for (int i = 0; i < linelen; i++) {
+      write(*currentchar);
+      currentchar++;
+      // the write() call handles increasing cursor_y when it sees a '\n'
+    }
+
+  } while (nextline);
 }
 
-uint16_t ILI9341_t3::measureTextWidth(const char* text) {
+uint16_t ILI9341_t3::measureTextWidth(const char* text, int num) {
   uint16_t maxH = 0;
   uint16_t currH = 0;
-  for (const char* i = text; *i != 0; i++) {
-    if (*i == '\n') {
+  uint16_t n = num;
+
+  if (n == 0) {
+    n = strlen(text);
+  };
+
+  for (int i = 0; i < n; i++) {
+    if (text[i] == '\n') {
       if (currH > maxH)
         maxH = currH;
       currH = 0;
     } else {
       uint16_t h, w;
-      measureChar(*i, &w, &h);
+      measureChar(text[i], &w, &h);
       currH += w;
     }
   }
@@ -1876,10 +1861,14 @@ uint16_t ILI9341_t3::measureTextWidth(const char* text) {
   return h;
 }
 
-uint16_t ILI9341_t3::measureTextHeight(const char* text) {
+uint16_t ILI9341_t3::measureTextHeight(const char* text, int num) {
   int lines = 1;
-  for (const char* i = text; *i != 0; i++) {
-    if (*i == '\n') {
+  uint16_t n = num;
+  if (n == 0) {
+    n = strlen(text);
+  };
+  for (int i = 0; i < n; i++) {
+    if (text[i] == '\n') {
       lines++;
     }
   }

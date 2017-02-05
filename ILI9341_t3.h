@@ -160,6 +160,7 @@ typedef struct {
 } ILI9341_t3_font_t;
 
 enum alignment_t {
+  ALIGN_DEFAULT = 0, // equivalent to ALIGN_LEFT | ALIGN_TOP, for now (latin script)
   ALIGN_LEFT = 1,
   ALIGN_HCENTER = 2,
   ALIGN_CENTER = 2,  // an alias for ALIGN_HCENTER
@@ -307,7 +308,7 @@ class ILI9341_t3 : public Print
   uint16_t fontLineSpace() { return font->line_space; }
   uint16_t fontGap() { return font->line_space - font->cap_height; };
 
-  alignment_t setTextAlign(alignment_t align) { alignment_t oldalign = _textalign; _textalign = align; return oldalign; }
+  alignment_t setTextAlign(alignment_t align = ALIGN_DEFAULT) { alignment_t oldalign = _textalign; _textalign = align; return oldalign; }
   alignment_t getTextAlign() { return _textalign; }
 
   void drawText(const char* text);

@@ -1806,8 +1806,15 @@ boolean ILI9341_t3::getTextWrap()
 
 void ILI9341_t3::drawText(const char* text) {
   int16_t orig_x = cursor_x;
+
   const char* currentchar = text;
   const char* nextline;
+
+  if (getTextAlign() & ALIGN_BOTTOM) {
+    cursor_y -= measureTextHeight(text);
+  } else if (getTextAlign() & ALIGN_VCENTER) {
+    cursor_y -= measureTextHeight(text)/2;
+  }
 
   do {
     nextline = strchr(currentchar, '\n');

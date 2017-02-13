@@ -1762,11 +1762,7 @@ void ILI9341_t3::drawFontBits(bool opaque, uint32_t bits, uint32_t numbits, int3
 }
 
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {
-	if (x < 0) x = 0;
-	else if (x >= _width) x = _width - 1;
 	cursor_x = x;
-	if (y < 0) y = 0;
-	else if (y >= _height) y = _height - 1;
 	cursor_y = y;
 }
 

@@ -630,6 +630,21 @@ void ILI9341_t3::begin(void)
 	} else
         return; // not valid pins...
 	SPI.begin();
+  // allow use of library when cs is pulled low and display is the only
+  // chip on the spi bus
+	if (SPI.pinIsChipSelect(_cs)) {
+		pcs_data = SPI.setCS(_cs);
+  } else {
+    pcs_data = 0;
+  }
+  // even if this is the only chip, a valid dc pin must be provided
+	if (SPI.pinIsChipSelect(_dc)) {
+		pcs_command = pcs_data | SPI.setCS(_dc);
+  } else {
+		pcs_command = 0;
+    return;
+  }
+  /*
 	if (SPI.pinIsChipSelect(_cs, _dc)) {
 		pcs_data = SPI.setCS(_cs);
 		pcs_command = pcs_data | SPI.setCS(_dc);
@@ -638,6 +653,7 @@ void ILI9341_t3::begin(void)
 		pcs_command = 0;
 		return;
 	}
+  */
 	// toggle RST low to reset
 	if (_rst < 255) {
 		pinMode(_rst, OUTPUT);

@@ -53,7 +53,9 @@
 
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock
-#define SPICLOCK 30000000
+//  6600000 gives 2 Mhz SCK
+// 15000000 gives 
+#define SPICLOCK 15000000
 
 #define WIDTH  ILI9341_TFTWIDTH
 #define HEIGHT ILI9341_TFTHEIGHT

@@ -53,9 +53,10 @@
 
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock
-//  6600000 gives 2 Mhz SCK
-// 15000000 gives 
-#define SPICLOCK 15000000
+//  6600000 gives 6 Mhz SCK
+// 10000000 gives 9.6 MHz SCK
+// 30000000 gives 24 MHz Teensy 3.2, 48 MHz, Fast
+uint32_t SPIclock = 30000000;	// bboyes 2017May15 change to variable
 
 #define WIDTH  ILI9341_TFTWIDTH
 #define HEIGHT ILI9341_TFTHEIGHT
@@ -80,9 +81,18 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	font      = NULL;
 }
 
+// bboyes 2017 May 15
+// non-default setting for SPI clock 
+// ILI9341 data sheet specifies 6.6 MHz max for reads, 10 MHz for writes
+// TODO: allow separate clock values for read and write cycles
+void ILI9341_t3::setSPIclock(uint32_t speed)
+{
+	SPIclock = speed;
+}
+
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x0, y0, x1, y1);
 	writecommand_last(ILI9341_RAMWR); // write to RAM
 	SPI.endTransaction();
@@ -90,7 +100,7 @@ void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y
 
 void ILI9341_t3::pushColor(uint16_t color)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	writedata16_last(color);
 	SPI.endTransaction();
 }
@@ -99,7 +109,7 @@ void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 	if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMWR);
 	writedata16_last(color);
@@ -112,7 +122,7 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	if((x >= _width) || (x < 0) || (y >= _height)) return;
 	if(y < 0) {	h += y; y = 0; 	}
 	if((y+h-1) >= _height) h = _height-y;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	while (h-- > 1) {
@@ -128,7 +138,7 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	if((x >= _width) || (y >= _height) || (y < 0)) return;
 	if(x < 0) {	w += x; x = 0; 	}
 	if((x+w-1) >= _width)  w = _width-x;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y);
 	writecommand_cont(ILI9341_RAMWR);
 	while (w-- > 1) {
@@ -156,7 +166,7 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -166,7 +176,7 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();
-			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+			SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 		}
 	}
 	SPI.endTransaction();
@@ -189,7 +199,7 @@ void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -201,7 +211,7 @@ void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();
-			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+			SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 		}
 		r+=dr;g+=dg; b+=db;
 	}
@@ -225,7 +235,7 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -239,7 +249,7 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();
-			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+			SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 		}
 		r=r1;g=g1;b=b1;
 	}
@@ -270,7 +280,7 @@ void ILI9341_t3::fillScreenHGradient(uint16_t color1, uint16_t color2)
 void ILI9341_t3::setRotation(uint8_t m)
 {
 	rotation = m % 4; // can't be higher than 3
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	writecommand_cont(ILI9341_MADCTL);
 	switch (rotation) {
 	case 0:
@@ -301,7 +311,7 @@ void ILI9341_t3::setRotation(uint8_t m)
 
 void ILI9341_t3::setScroll(uint16_t offset)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	writecommand_cont(ILI9341_VSCRSADD);
 	writedata16_last(offset);
 	SPI.endTransaction();
@@ -309,7 +319,7 @@ void ILI9341_t3::setScroll(uint16_t offset)
 
 void ILI9341_t3::invertDisplay(boolean i)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
 	SPI.endTransaction();
 }
@@ -352,7 +362,7 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     uint16_t wTimeout = 0xffff;
     uint8_t r=0;
 
-    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+    SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
     while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
 
     // Make sure the last frame has been sent...
@@ -483,7 +493,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 // Now lets see if we can writemultiple pixels
 void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors)
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -500,7 +510,7 @@ void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 //					color palette data in array at palette
 void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -518,7 +528,7 @@ void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 //					width must be at least 2 pixels
 void ILI9341_t3::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -538,7 +548,7 @@ void ILI9341_t3::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 //					width must be at least 4 pixels
 void ILI9341_t3::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -563,7 +573,7 @@ void ILI9341_t3::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 //					width must be at least 8 pixels
 void ILI9341_t3::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -662,7 +672,7 @@ void ILI9341_t3::begin(void)
 	x = readcommand8(ILI9341_RDSELFDIAG);
 	Serial.print("\nSelf Diagnostic: 0x"); Serial.println(x, HEX);
 	*/
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	const uint8_t *addr = init_commands;
 	while (1) {
 		uint8_t count = *addr++;
@@ -676,7 +686,7 @@ void ILI9341_t3::begin(void)
 	SPI.endTransaction();
 
 	delay(120); 		
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	writecommand_last(ILI9341_DISPON);    // Display on
 	SPI.endTransaction();
 }
@@ -874,7 +884,7 @@ void ILI9341_t3::drawLine(int16_t x0, int16_t y0,
 		ystep = -1;
 	}
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	int16_t xbegin = x0;
 	if (steep) {
 		for (; x0<=x1; x0++) {
@@ -921,7 +931,7 @@ void ILI9341_t3::drawLine(int16_t x0, int16_t y0,
 // Draw a rectangle
 void ILI9341_t3::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	HLine(x, y, w, color);
 	HLine(x, y+h-1, w, color);
 	VLine(x, y, h, color);
@@ -1179,7 +1189,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		}
 	} else {
 		// This solid background approach is about 5 time faster
-		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 		setAddr(x, y, x + 6 * size - 1, y + 8 * size - 1);
 		writecommand_cont(ILI9341_RAMWR);
 		uint8_t xr, yr;
@@ -1453,7 +1463,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 #endif
 #if 1
 	if (bits == 0) return;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	int w = 0;
 	do {
 		uint32_t x1 = x;
@@ -1549,7 +1559,7 @@ uint8_t ILI9341_t3::getRotation(void) {
 }
 
 void ILI9341_t3::sleep(bool enable) {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	SPI.beginTransaction(SPISettings(SPIclock, MSBFIRST, SPI_MODE0));
 	if (enable) {
 		writecommand_cont(ILI9341_DISPOFF);		
 		writecommand_last(ILI9341_SLPIN);	

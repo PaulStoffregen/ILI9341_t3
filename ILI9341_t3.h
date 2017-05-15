@@ -166,6 +166,7 @@ class ILI9341_t3 : public Print
 {
   public:
 	ILI9341_t3(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255, uint8_t _MOSI=11, uint8_t _SCLK=13, uint8_t _MISO=12);
+	void setSPIclock(uint32_t speed);	// bboyes 2017May15
 	void begin(void);
   	void sleep(bool enable);		
 	void pushColor(uint16_t color);

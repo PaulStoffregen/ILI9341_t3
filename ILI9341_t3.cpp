@@ -1204,6 +1204,8 @@ size_t ILI9341_t3::write(uint8_t c)
 void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			    uint16_t fgcolor, uint16_t bgcolor, uint8_t size)
 {
+	if (c == 0xa0) { c = ' '; } // handle non-breaking space as a space
+
 	if (fgcolor == bgcolor) {
 		// This transparent approach is only about 20% faster
 		// Don't need to clip here since the called rendering primitives all clip
@@ -1368,6 +1370,10 @@ static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t requ
 
 // measure the size of a character
 void ILI9341_t3::measureChar(unsigned char c, uint16_t* w, uint16_t* h) {
+	if (c == 0xa0) {
+	  c = ' ';
+	}
+
 	if (font) {
 		*h = font->cap_height;
 		*w = 0;
@@ -1426,7 +1432,10 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 	const uint8_t *data;
 
 	//Serial.printf("drawFontChar %d\n", c);
-
+	// non-breaking space
+	if (c==0xa0) {
+	  c = ' ';
+	}
 	if (c >= font->index1_first && c <= font->index1_last) {
 		bitoffset = c - font->index1_first;
 		bitoffset *= font->bits_index;

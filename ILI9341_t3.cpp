@@ -206,10 +206,10 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 
 	// Rectangular clipping (drawChar w/big text requires this)
 	if((x >= _displayclipx2) || (y >= _displayclipy2)) return;
-	if((x + w - 1) >= _displayclipx2)  w = _displayclipx2  - x;
-	if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
 	if(x < _displayclipx1) { x = _displayclipx1; w -= _displayclipx1-x; }
 	if(y < _displayclipy1) { y = _displayclipy1; h -= _displayclipy1-y; }
+	if((x + w - 1) >= _displayclipx2)  w = _displayclipx2  - x;
+	if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
 
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though

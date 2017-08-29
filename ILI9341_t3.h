@@ -53,6 +53,12 @@
 #include "Arduino.h"
 #endif
 
+#if defined(__MKL26Z64__)
+#error "Sorry, ILI9341_t3 does not work with Teensy LC.  Use Adafruit_ILI9341."
+#elif defined(__AVR__)
+#error "Sorry, ILI9341_t3 does not work with Teensy 2.0 or Teensy++ 2.0.  Use Adafruit_ILI9341."
+#endif
+
 #define ILI9341_TFTWIDTH  240
 #define ILI9341_TFTHEIGHT 320
 

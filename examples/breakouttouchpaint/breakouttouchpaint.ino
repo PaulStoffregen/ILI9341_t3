@@ -15,7 +15,6 @@
 
 /** NOT FOR USE WITH THE TOUCH SHIELD, ONLY FOR THE BREAKOUT! **/
 
-#include <Adafruit_GFX.h>    // Core graphics library
 #include <SPI.h>
 #include <ILI9341_t3.h>
 #include "TouchScreen.h"

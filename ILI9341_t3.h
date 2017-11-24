@@ -277,6 +277,7 @@ class ILI9341_t3 : public Print
 	int16_t getCursorY(void) const { return cursor_y; }
 	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
 	void setFontAdafruit(void) { font = NULL; }
+	int16_t getFontHeight() { return font->cap_height; }
 	void drawFontChar(unsigned int c);
 	int16_t strPixelLen(char * str);
 

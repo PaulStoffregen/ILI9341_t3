@@ -28,7 +28,7 @@ print H "#endif\n\n";
 while (<C>) {
 	chop;
 	next unless /^const/;
-	s/ = {$//;
+	s/ = \{$//;
 	print H "extern $_;\n";
 	#print "$_\n";
 }

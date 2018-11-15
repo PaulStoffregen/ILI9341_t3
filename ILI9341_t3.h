@@ -145,6 +145,10 @@
 
 #define sint16_t int16_t
 
+
+// Documentation on the ILI9341_t3 font data format:
+// https://forum.pjrc.com/threads/54316-ILI9341_t-font-structure-format
+
 typedef struct {
 	const unsigned char *index;
 	const unsigned char *unicode;

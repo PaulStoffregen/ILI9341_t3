@@ -492,12 +492,12 @@ class ILI9341_t3 : public Print
 	void writecommand_last(uint8_t c) __attribute__((always_inline)) {
 		uint32_t mcr = SPI0_MCR;
 		KINETISK_SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_EOQ;
-		waitTransmitComplete();
+		waitTransmitComplete(mcr);
 	}
 	void writedata8_last(uint8_t c) __attribute__((always_inline)) {
 		uint32_t mcr = SPI0_MCR;
 		KINETISK_SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_EOQ;
-		waitTransmitComplete();
+		waitTransmitComplete(mcr);
 	}
 	void writedata16_last(uint16_t d) __attribute__((always_inline)) {
 		uint32_t mcr = SPI0_MCR;

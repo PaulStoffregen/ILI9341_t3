@@ -1206,6 +1206,21 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 	}
 }
 
+void ILI9341_t3::setFont(const ILI9341_t3_font_t &f) {
+	font = &f;
+	fontbpp = 1;
+	// Calculate additional metrics for Anti-Aliased font support (BDF extn v2.3)
+	if (font && font->version==23){
+		fontbpp = (font->reserved & 0b000011)+1;
+		fontbppindex = (fontbpp >> 2)+1;
+		fontbppmask = (1 << (fontbppindex+1))-1;
+		fontppb = 8/fontbpp;
+		fontalphamx = 31/((1<<fontbpp)-1);
+		// Ensure text and bg color are different. Note: use setTextColor to set actual bg color
+		if (textcolor == textbgcolor) textbgcolor = (textcolor==0x0000)?0xFFFF:0x0000;
+	}
+}
+
 static uint32_t fetchbit(const uint8_t *p, uint32_t index)
 {
 	if (p[index >> 3] & (1 << (7 - (index & 7)))) return 1;
@@ -1240,6 +1255,16 @@ static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t requ
 		return (int32_t)val - (1 << required);
 	}
 	return (int32_t)val;
+}
+
+uint32_t ILI9341_t3::fetchpixel(const uint8_t *p, uint32_t index, uint32_t x){
+	// The byte
+	uint8_t b = p[index >> 3];
+	// Shift to LSB position and mask to get value
+	uint8_t s = ((fontppb-(x % fontppb)-1)*fontbpp);
+//Serial.printf("[%d>>%d (%d)] ",b,s,x);
+	// Mask and return
+	return (b >> s) & fontbppmask;
 }
 
 
@@ -1307,47 +1332,70 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 	// vertically, the top and/or bottom can be clipped
 	int32_t origin_y = cursor_y + font->cap_height - height - yoffset;
 	//Serial.printf("  origin = %d,%d\n", origin_x, origin_y);
-
-	// TODO: compute top skip and number of lines
+	
+	//// TODO: compute top skip and number of lines
 	int32_t linecount = height;
 	//uint32_t loopcount = 0;
 	uint32_t y = origin_y;
-	while (linecount) {
-		//Serial.printf("    linecount = %d\n", linecount);
-		uint32_t b = fetchbit(data, bitoffset++);
-		if (b == 0) {
-			//Serial.println("    single line");
+	
+	// BDF v2.3 Anti-aliased font handled differently
+	if (fontbpp>1){
+		bitoffset = ((bitoffset + 7) & (-8)); // byte-boundary
+		uint32_t xp = 0;
+		while (linecount) {
 			uint32_t x = 0;
-			do {
-				uint32_t xsize = width - x;
-				if (xsize > 32) xsize = 32;
-				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
-				drawFontBits(bits, xsize, origin_x + x, y, 1);
-				bitoffset += xsize;
-				x += xsize;
-			} while (x < width);
+			while(x<width) {
+				// One pixel at a time
+				uint8_t alpha = fetchpixel(data, bitoffset, xp);
+				drawFontPixel(alpha, origin_x + x, y);
+				bitoffset += fontbpp;
+				x++;
+				xp++;
+			}
 			y++;
 			linecount--;
-		} else {
-			uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
-			bitoffset += 3;
-			uint32_t x = 0;
-			do {
-				uint32_t xsize = width - x;
-				if (xsize > 32) xsize = 32;
-				//Serial.printf("    multi line %d\n", n);
-				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
-				drawFontBits(bits, xsize, origin_x + x, y, n);
-				bitoffset += xsize;
-				x += xsize;
-			} while (x < width);
-			y += n;
-			linecount -= n;
 		}
-		//if (++loopcount > 100) {
-			//Serial.println("     abort draw loop");
-			//break;
-		//}
+	}
+
+	// original BDF font rendering
+	else{
+		while (linecount) {
+			//Serial.printf("    linecount = %d\n", linecount);
+			uint32_t b = fetchbit(data, bitoffset++);
+			if (b == 0) {
+				//Serial.println("    single line");
+				uint32_t x = 0;
+				do {
+					uint32_t xsize = width - x;
+					if (xsize > 32) xsize = 32;
+					uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+					drawFontBits(bits, xsize, origin_x + x, y, 1);
+					bitoffset += xsize;
+					x += xsize;
+				} while (x < width);
+				y++;
+				linecount--;
+			} else {
+				uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
+				bitoffset += 3;
+				uint32_t x = 0;
+				do {
+					uint32_t xsize = width - x;
+					if (xsize > 32) xsize = 32;
+					//Serial.printf("    multi line %d\n", n);
+					uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+					drawFontBits(bits, xsize, origin_x + x, y, n);
+					bitoffset += xsize;
+					x += xsize;
+				} while (x < width);
+				y += n;
+				linecount -= n;
+			}
+			//if (++loopcount > 100) {
+				//Serial.println("     abort draw loop");
+				//break;
+			//}
+		}
 	}
 }
 
@@ -1500,6 +1548,14 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 #endif	
 }
 
+void ILI9341_t3::drawFontPixel( uint8_t alpha, uint32_t x, uint32_t y ){
+	// Adjust alpha based on the number of alpha levels supported by the font (based on bpp)
+	// Note: Implemented look-up table for alpha, but made absolutely no difference in speed (T3.6)
+	alpha = (uint8_t)(alpha * fontalphamx);
+	uint32_t result = ((((textcolorPrexpanded - textbgcolorPrexpanded) * alpha) >> 5) + textbgcolorPrexpanded) & 0b00000111111000001111100000011111;
+	Pixel(x,y,(uint16_t)((result >> 16) | result));
+}
+
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {
 	if (x < 0) x = 0;
 	else if (x >= _width) x = _width - 1;
@@ -1531,6 +1587,9 @@ void ILI9341_t3::setTextColor(uint16_t c) {
 void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
   textcolor   = c;
   textbgcolor = b;
+  // pre-expand colors for fast alpha-blending later
+  textcolorPrexpanded = (textcolor | (textcolor << 16)) & 0b00000111111000001111100000011111;
+  textbgcolorPrexpanded = (textbgcolor | (textbgcolor << 16)) & 0b00000111111000001111100000011111;
 }
 
 void ILI9341_t3::setTextWrap(boolean w) {

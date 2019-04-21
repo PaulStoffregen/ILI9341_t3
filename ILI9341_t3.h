@@ -176,6 +176,8 @@ class ILI9341_t3 : public Print
 {
   public:
 	ILI9341_t3(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255, uint8_t _MOSI=11, uint8_t _SCLK=13, uint8_t _MISO=12);
+	void iAmHere(void);
+
 	void begin(void);
   	void sleep(bool enable);		
 	void pushColor(uint16_t color);
@@ -184,7 +186,7 @@ class ILI9341_t3 : public Print
 	void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
 	void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
 	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
-			
+
 	void fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
 	void fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
 	void fillScreenVGradient(uint16_t color1, uint16_t color2);
@@ -279,7 +281,7 @@ class ILI9341_t3 : public Print
 	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 	int16_t getCursorX(void) const { return cursor_x; }
 	int16_t getCursorY(void) const { return cursor_y; }
-	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
+	void setFont(const ILI9341_t3_font_t &f);
 	void setFontAdafruit(void) { font = NULL; }
 	void drawFontChar(unsigned int c);
 	int16_t strPixelLen(char * str);
@@ -288,9 +290,16 @@ class ILI9341_t3 : public Print
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;
 	uint16_t textcolor, textbgcolor;
+	uint32_t textcolorPrexpanded, textbgcolorPrexpanded;
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display
 	const ILI9341_t3_font_t *font;
+	uint8_t fontbpp = 1;
+	uint8_t fontbppindex = 0;
+	uint8_t fontbppmask = 1;
+	uint8_t fontppb = 8;
+	uint8_t* fontalphalut;
+	float fontalphamx = 1;
 
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
@@ -394,7 +403,9 @@ class ILI9341_t3 : public Print
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);
 	}
-	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
+	void drawFontBits( uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat );
+	void drawFontPixel( uint8_t alpha, uint32_t x, uint32_t y );
+	uint32_t fetchpixel(const uint8_t *p, uint32_t index, uint32_t x);
 };
 
 #ifndef swap

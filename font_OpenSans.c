@@ -141,7 +141,7 @@ static const unsigned char OpenSans8_index[] = {
 0xa0 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t OpenSans8 = {
+const packedbdf_t OpenSans8 = {
 	OpenSans8_index,
 	0,
 	OpenSans8_data,
@@ -321,7 +321,7 @@ static const unsigned char OpenSans9_index[] = {
 0x50 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t OpenSans9 = {
+const packedbdf_t OpenSans9 = {
 	OpenSans9_index,
 	0,
 	OpenSans9_data,
@@ -515,7 +515,7 @@ static const unsigned char OpenSans10_index[] = {
 0xf8 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t OpenSans10 = {
+const packedbdf_t OpenSans10 = {
 	OpenSans10_index,
 	0,
 	OpenSans10_data,
@@ -751,7 +751,7 @@ static const unsigned char OpenSans11_index[] = {
 0xc0 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t OpenSans11 = {
+const packedbdf_t OpenSans11 = {
 	OpenSans11_index,
 	0,
 	OpenSans11_data,
@@ -1025,7 +1025,7 @@ static const unsigned char OpenSans12_index[] = {
 0xf1,0x90,0xc0 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t OpenSans12 = {
+const packedbdf_t OpenSans12 = {
 	OpenSans12_index,
 	0,
 	OpenSans12_data,
@@ -1310,7 +1310,7 @@ static const unsigned char OpenSans13_index[] = {
 0x64,0x97,0xf0 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t OpenSans13 = {
+const packedbdf_t OpenSans13 = {
 	OpenSans13_index,
 	0,
 	OpenSans13_data,
@@ -1652,7 +1652,7 @@ static const unsigned char OpenSans14_index[] = {
 0x94,0xbb,0x60 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t OpenSans14 = {
+const packedbdf_t OpenSans14 = {
 	OpenSans14_index,
 	0,
 	OpenSans14_data,
@@ -2047,7 +2047,7 @@ static const unsigned char OpenSans16_index[] = {
 0x9d,0xdc,0x50 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t OpenSans16 = {
+const packedbdf_t OpenSans16 = {
 	OpenSans16_index,
 	0,
 	OpenSans16_data,
@@ -2533,7 +2533,7 @@ static const unsigned char OpenSans18_index[] = {
 0x7f,0x44,0x52,0x28,0x40 };
 /* font index size: 155 bytes */
 
-const ILI9341_t3_font_t OpenSans18 = {
+const packedbdf_t OpenSans18 = {
 	OpenSans18_index,
 	0,
 	OpenSans18_data,
@@ -3117,7 +3117,7 @@ static const unsigned char OpenSans20_index[] = {
 0x66,0x53,0x96,0xa3,0xa0 };
 /* font index size: 155 bytes */
 
-const ILI9341_t3_font_t OpenSans20 = {
+const packedbdf_t OpenSans20 = {
 	OpenSans20_index,
 	0,
 	OpenSans20_data,
@@ -3908,7 +3908,7 @@ static const unsigned char OpenSans24_index[] = {
 0x5c,0x73,0x53,0xa4,0xa0 };
 /* font index size: 155 bytes */
 
-const ILI9341_t3_font_t OpenSans24 = {
+const packedbdf_t OpenSans24 = {
 	OpenSans24_index,
 	0,
 	OpenSans24_data,
@@ -4927,7 +4927,7 @@ static const unsigned char OpenSans28_index[] = {
 0x1e,0x96,0x0a,0x5a,0x29,0x81,0x80 };
 /* font index size: 167 bytes */
 
-const ILI9341_t3_font_t OpenSans28 = {
+const packedbdf_t OpenSans28 = {
 	OpenSans28_index,
 	0,
 	OpenSans28_data,
@@ -6289,7 +6289,7 @@ static const unsigned char OpenSans32_index[] = {
 0x18,0xca,0x87,0x2d,0x0c,0xd6,0x40 };
 /* font index size: 167 bytes */
 
-const ILI9341_t3_font_t OpenSans32 = {
+const packedbdf_t OpenSans32 = {
 	OpenSans32_index,
 	0,
 	OpenSans32_data,
@@ -8317,7 +8317,7 @@ static const unsigned char OpenSans40_index[] = {
 0x64,0xb6,0x49,0x87,0x13,0x20,0x26,0xa4,0x80 };
 /* font index size: 179 bytes */
 
-const ILI9341_t3_font_t OpenSans40 = {
+const packedbdf_t OpenSans40 = {
 	OpenSans40_index,
 	0,
 	OpenSans40_data,
@@ -11218,7 +11218,7 @@ static const unsigned char OpenSans48_index[] = {
 0x86,0xcb,0x2d,0xb9,0xfb,0x89,0x37,0xa7,0x80 };
 /* font index size: 179 bytes */
 
-const ILI9341_t3_font_t OpenSans48 = {
+const packedbdf_t OpenSans48 = {
 	OpenSans48_index,
 	0,
 	OpenSans48_data,
@@ -15660,7 +15660,7 @@ static const unsigned char OpenSans60_index[] = {
 0xa5,0xeb,0xa7,0x48,0xa9,0x14,0xa9,0x91,0xab,0x5d };
 /* font index size: 190 bytes */
 
-const ILI9341_t3_font_t OpenSans60 = {
+const packedbdf_t OpenSans60 = {
 	OpenSans60_index,
 	0,
 	OpenSans60_data,
@@ -22022,7 +22022,7 @@ static const unsigned char OpenSans72_index[] = {
 0xee,0xa1,0xf0,0x7e,0xf2,0xf9,0xf3,0xa6,0xf6,0x36 };
 /* font index size: 190 bytes */
 
-const ILI9341_t3_font_t OpenSans72 = {
+const packedbdf_t OpenSans72 = {
 	OpenSans72_index,
 	0,
 	OpenSans72_data,

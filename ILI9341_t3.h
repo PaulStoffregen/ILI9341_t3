@@ -379,8 +379,8 @@ class ILI9341_t3 : public Print
 		writecommand_cont(ILI9341_RAMWR);
 		writedata16_cont(color);
 	}
-	void drawFontBits( uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat );
-	void drawFontPixel( uint8_t alpha, uint32_t x, uint32_t y );
+	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y);
+	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
 	uint32_t fetchpixel(const uint8_t *p, uint32_t index, uint32_t x);
 };
 

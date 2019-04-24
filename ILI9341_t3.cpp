@@ -1206,7 +1206,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 	}
 }
 
-void ILI9341_t3::setFont(const ILI9341_t3_font_t &f) {
+void ILI9341_t3::setFont(const packedbdf_t &f) {
 	font = &f;
 	fontbpp = 1;
 	// Calculate additional metrics for Anti-Aliased font support (BDF extn v2.3)
@@ -1262,7 +1262,6 @@ uint32_t ILI9341_t3::fetchpixel(const uint8_t *p, uint32_t index, uint32_t x){
 	uint8_t b = p[index >> 3];
 	// Shift to LSB position and mask to get value
 	uint8_t s = ((fontppb-(x % fontppb)-1)*fontbpp);
-//Serial.printf("[%d>>%d (%d)] ",b,s,x);
 	// Mask and return
 	return (b >> s) & fontbppmask;
 }
@@ -1340,6 +1339,11 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 	
 	// BDF v2.3 Anti-aliased font handled differently
 	if (fontbpp>1){
+
+		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		setAddr( origin_x, origin_y, origin_x+width-1, origin_y+linecount-1);
+		writecommand_cont(ILI9341_RAMWR);
+
 		bitoffset = ((bitoffset + 7) & (-8)); // byte-boundary
 		uint32_t xp = 0;
 		while (linecount) {
@@ -1347,7 +1351,11 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 			while(x<width) {
 				// One pixel at a time
 				uint8_t alpha = fetchpixel(data, bitoffset, xp);
-				drawFontPixel(alpha, origin_x + x, y);
+
+				alpha = (uint8_t)(alpha * fontalphamx);
+				uint32_t result = ((((textcolorPrexpanded - textbgcolorPrexpanded) * alpha) >> 5) + textbgcolorPrexpanded) & 0b00000111111000001111100000011111;
+				writedata16_cont((uint16_t)((result >> 16) | result));
+
 				bitoffset += fontbpp;
 				x++;
 				xp++;
@@ -1355,6 +1363,9 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 			y++;
 			linecount--;
 		}
+
+		writecommand_last(ILI9341_NOP);
+		SPI.endTransaction();
 	}
 
 	// original BDF font rendering
@@ -1546,14 +1557,6 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 	} while (repeat);
 	SPI.endTransaction();
 #endif	
-}
-
-void ILI9341_t3::drawFontPixel( uint8_t alpha, uint32_t x, uint32_t y ){
-	// Adjust alpha based on the number of alpha levels supported by the font (based on bpp)
-	// Note: Implemented look-up table for alpha, but made absolutely no difference in speed (T3.6)
-	alpha = (uint8_t)(alpha * fontalphamx);
-	uint32_t result = ((((textcolorPrexpanded - textbgcolorPrexpanded) * alpha) >> 5) + textbgcolorPrexpanded) & 0b00000111111000001111100000011111;
-	Pixel(x,y,(uint16_t)((result >> 16) | result));
 }
 
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {

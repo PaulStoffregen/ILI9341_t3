@@ -53,6 +53,8 @@
 #include "Arduino.h"
 #endif
 
+#include "PackedBDF.h"
+
 #if defined(__MKL26Z64__)
 #error "Sorry, ILI9341_t3 does not work with Teensy LC.  Use Adafruit_ILI9341."
 #elif defined(__AVR__)
@@ -117,7 +119,6 @@
 #define ILI9341_GMCTRN1 0xE1
 /*
 #define ILI9341_PWCTR6  0xFC
-
 */
 
 // Color definitions
@@ -144,31 +145,6 @@
 #define CL(_r,_g,_b) ((((_r)&0xF8)<<8)|(((_g)&0xFC)<<3)|((_b)>>3))
 
 #define sint16_t int16_t
-
-
-// Documentation on the ILI9341_t3 font data format:
-// https://forum.pjrc.com/threads/54316-ILI9341_t-font-structure-format
-
-typedef struct {
-	const unsigned char *index;
-	const unsigned char *unicode;
-	const unsigned char *data;
-	unsigned char version;
-	unsigned char reserved;
-	unsigned char index1_first;
-	unsigned char index1_last;
-	unsigned char index2_first;
-	unsigned char index2_last;
-	unsigned char bits_index;
-	unsigned char bits_width;
-	unsigned char bits_height;
-	unsigned char bits_xoffset;
-	unsigned char bits_yoffset;
-	unsigned char bits_delta;
-	unsigned char line_space;
-	unsigned char cap_height;
-} ILI9341_t3_font_t;
-
 
 #ifdef __cplusplus
 
@@ -281,7 +257,7 @@ class ILI9341_t3 : public Print
 	void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 	int16_t getCursorX(void) const { return cursor_x; }
 	int16_t getCursorY(void) const { return cursor_y; }
-	void setFont(const ILI9341_t3_font_t &f);
+	void setFont(const packedbdf_t &f);
 	void setFontAdafruit(void) { font = NULL; }
 	void drawFontChar(unsigned int c);
 	int16_t strPixelLen(char * str);
@@ -293,7 +269,7 @@ class ILI9341_t3 : public Print
 	uint32_t textcolorPrexpanded, textbgcolorPrexpanded;
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display
-	const ILI9341_t3_font_t *font;
+	const packedbdf_t *font;
 	uint8_t fontbpp = 1;
 	uint8_t fontbppindex = 0;
 	uint8_t fontbppmask = 1;

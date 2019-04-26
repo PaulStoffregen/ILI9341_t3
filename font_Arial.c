@@ -86,7 +86,7 @@ static const unsigned char Arial_8_index[] = {
 };
 /* font index size: 119 bytes */
 
-const ILI9341_t3_font_t Arial_8 = {
+const packedbdf_t Arial_8 = {
 	Arial_8_index,
 	0,
 	Arial_8_data,
@@ -205,7 +205,7 @@ static const unsigned char Arial_9_index[] = {
 };
 /* font index size: 119 bytes */
 
-const ILI9341_t3_font_t Arial_9 = {
+const packedbdf_t Arial_9 = {
 	Arial_9_index,
 	0,
 	Arial_9_data,
@@ -328,7 +328,7 @@ static const unsigned char Arial_10_index[] = {
 };
 /* font index size: 119 bytes */
 
-const ILI9341_t3_font_t Arial_10 = {
+const packedbdf_t Arial_10 = {
 	Arial_10_index,
 	0,
 	Arial_10_data,
@@ -456,7 +456,7 @@ static const unsigned char Arial_11_index[] = {
 };
 /* font index size: 119 bytes */
 
-const ILI9341_t3_font_t Arial_11 = {
+const packedbdf_t Arial_11 = {
 	Arial_11_index,
 	0,
 	Arial_11_data,
@@ -599,7 +599,7 @@ static const unsigned char Arial_12_index[] = {
 };
 /* font index size: 119 bytes */
 
-const ILI9341_t3_font_t Arial_12 = {
+const packedbdf_t Arial_12 = {
 	Arial_12_index,
 	0,
 	Arial_12_data,
@@ -765,7 +765,7 @@ static const unsigned char Arial_13_index[] = {
 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t Arial_13 = {
+const packedbdf_t Arial_13 = {
 	Arial_13_index,
 	0,
 	Arial_13_data,
@@ -940,7 +940,7 @@ static const unsigned char Arial_14_index[] = {
 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t Arial_14 = {
+const packedbdf_t Arial_14 = {
 	Arial_14_index,
 	0,
 	Arial_14_data,
@@ -1139,7 +1139,7 @@ static const unsigned char Arial_16_index[] = {
 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t Arial_16 = {
+const packedbdf_t Arial_16 = {
 	Arial_16_index,
 	0,
 	Arial_16_data,
@@ -1371,7 +1371,7 @@ static const unsigned char Arial_18_index[] = {
 };
 /* font index size: 131 bytes */
 
-const ILI9341_t3_font_t Arial_18 = {
+const packedbdf_t Arial_18 = {
 	Arial_18_index,
 	0,
 	Arial_18_data,
@@ -1644,7 +1644,7 @@ static const unsigned char Arial_20_index[] = {
 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t Arial_20 = {
+const packedbdf_t Arial_20 = {
 	Arial_20_index,
 	0,
 	Arial_20_data,
@@ -1985,7 +1985,7 @@ static const unsigned char Arial_24_index[] = {
 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t Arial_24 = {
+const packedbdf_t Arial_24 = {
 	Arial_24_index,
 	0,
 	Arial_24_data,
@@ -2428,7 +2428,7 @@ static const unsigned char Arial_28_index[] = {
 };
 /* font index size: 143 bytes */
 
-const ILI9341_t3_font_t Arial_28 = {
+const packedbdf_t Arial_28 = {
 	Arial_28_index,
 	0,
 	Arial_28_data,
@@ -2971,7 +2971,7 @@ static const unsigned char Arial_32_index[] = {
 };
 /* font index size: 155 bytes */
 
-const ILI9341_t3_font_t Arial_32 = {
+const packedbdf_t Arial_32 = {
 	Arial_32_index,
 	0,
 	Arial_32_data,
@@ -3765,7 +3765,7 @@ static const unsigned char Arial_40_index[] = {
 };
 /* font index size: 155 bytes */
 
-const ILI9341_t3_font_t Arial_40 = {
+const packedbdf_t Arial_40 = {
 	Arial_40_index,
 	0,
 	Arial_40_data,
@@ -4881,7 +4881,7 @@ static const unsigned char Arial_48_index[] = {
 };
 /* font index size: 167 bytes */
 
-const ILI9341_t3_font_t Arial_48 = {
+const packedbdf_t Arial_48 = {
 	Arial_48_index,
 	0,
 	Arial_48_data,
@@ -6536,7 +6536,7 @@ static const unsigned char Arial_60_index[] = {
 };
 /* font index size: 167 bytes */
 
-const ILI9341_t3_font_t Arial_60 = {
+const packedbdf_t Arial_60 = {
 	Arial_60_index,
 	0,
 	Arial_60_data,
@@ -8884,7 +8884,7 @@ static const unsigned char Arial_72_index[] = {
 };
 /* font index size: 179 bytes */
 
-const ILI9341_t3_font_t Arial_72 = {
+const packedbdf_t Arial_72 = {
 	Arial_72_index,
 	0,
 	Arial_72_data,
@@ -12969,7 +12969,7 @@ static const unsigned char Arial_96_index[] = {
 };
 /* font index size: 190 bytes */
 
-const ILI9341_t3_font_t Arial_96 = {
+const packedbdf_t Arial_96 = {
 	Arial_96_index,
 	0,
 	Arial_96_data,

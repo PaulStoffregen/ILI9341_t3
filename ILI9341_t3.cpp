@@ -1206,6 +1206,21 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 	}
 }
 
+void ILI9341_t3::setFont(const packedbdf_t &f) {
+	font = &f;
+	fontbpp = 1;
+	// Calculate additional metrics for Anti-Aliased font support (BDF extn v2.3)
+	if (font && font->version==23){
+		fontbpp = (font->reserved & 0b000011)+1;
+		fontbppindex = (fontbpp >> 2)+1;
+		fontbppmask = (1 << (fontbppindex+1))-1;
+		fontppb = 8/fontbpp;
+		fontalphamx = 31/((1<<fontbpp)-1);
+		// Ensure text and bg color are different. Note: use setTextColor to set actual bg color
+		if (textcolor == textbgcolor) textbgcolor = (textcolor==0x0000)?0xFFFF:0x0000;
+	}
+}
+
 static uint32_t fetchbit(const uint8_t *p, uint32_t index)
 {
 	if (p[index >> 3] & (1 << (7 - (index & 7)))) return 1;
@@ -1240,6 +1255,15 @@ static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t requ
 		return (int32_t)val - (1 << required);
 	}
 	return (int32_t)val;
+}
+
+uint32_t ILI9341_t3::fetchpixel(const uint8_t *p, uint32_t index, uint32_t x){
+	// The byte
+	uint8_t b = p[index >> 3];
+	// Shift to LSB position and mask to get value
+	uint8_t s = ((fontppb-(x % fontppb)-1)*fontbpp);
+	// Mask and return
+	return (b >> s) & fontbppmask;
 }
 
 
@@ -1307,47 +1331,84 @@ void ILI9341_t3::drawFontChar(unsigned int c)
 	// vertically, the top and/or bottom can be clipped
 	int32_t origin_y = cursor_y + font->cap_height - height - yoffset;
 	//Serial.printf("  origin = %d,%d\n", origin_x, origin_y);
-
-	// TODO: compute top skip and number of lines
+	
+	//// TODO: compute top skip and number of lines
 	int32_t linecount = height;
 	//uint32_t loopcount = 0;
 	uint32_t y = origin_y;
-	while (linecount) {
-		//Serial.printf("    linecount = %d\n", linecount);
-		uint32_t b = fetchbit(data, bitoffset++);
-		if (b == 0) {
-			//Serial.println("    single line");
+	
+	// BDF v2.3 Anti-aliased font handled differently
+	if (fontbpp>1){
+
+		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		setAddr( origin_x, origin_y, origin_x+width-1, origin_y+linecount-1);
+		writecommand_cont(ILI9341_RAMWR);
+
+		bitoffset = ((bitoffset + 7) & (-8)); // byte-boundary
+		uint32_t xp = 0;
+		while (linecount) {
 			uint32_t x = 0;
-			do {
-				uint32_t xsize = width - x;
-				if (xsize > 32) xsize = 32;
-				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
-				drawFontBits(bits, xsize, origin_x + x, y, 1);
-				bitoffset += xsize;
-				x += xsize;
-			} while (x < width);
+			while(x<width) {
+				// One pixel at a time
+				uint8_t alpha = fetchpixel(data, bitoffset, xp);
+
+				alpha = (uint8_t)(alpha * fontalphamx);
+				uint32_t result = ((((textcolorPrexpanded - textbgcolorPrexpanded) * alpha) >> 5) + textbgcolorPrexpanded) & 0b00000111111000001111100000011111;
+				writedata16_cont((uint16_t)((result >> 16) | result));
+
+				bitoffset += fontbpp;
+				x++;
+				xp++;
+			}
 			y++;
 			linecount--;
-		} else {
-			uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
-			bitoffset += 3;
-			uint32_t x = 0;
-			do {
-				uint32_t xsize = width - x;
-				if (xsize > 32) xsize = 32;
-				//Serial.printf("    multi line %d\n", n);
-				uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
-				drawFontBits(bits, xsize, origin_x + x, y, n);
-				bitoffset += xsize;
-				x += xsize;
-			} while (x < width);
-			y += n;
-			linecount -= n;
 		}
-		//if (++loopcount > 100) {
-			//Serial.println("     abort draw loop");
-			//break;
-		//}
+
+		writecommand_last(ILI9341_NOP);
+		SPI.endTransaction();
+	}
+
+	// No anti-alias
+	else{
+
+		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+
+		int32_t linecount = height;
+		uint32_t y = origin_y;
+		while (linecount) {
+			uint32_t b = fetchbit(data, bitoffset++);
+			if (b == 0) {
+				uint32_t x = 0;
+				do {
+					uint32_t xsize = width - x;
+					if (xsize > 32) xsize = 32;
+					uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+					drawFontBits(bits, xsize, origin_x + x, y);
+					bitoffset += xsize;
+					x += xsize;
+				} while (x < width);
+				y++;
+				linecount--;
+			} else {
+				uint32_t n = fetchbits_unsigned(data, bitoffset, 3) + 2;
+				bitoffset += 3;
+				uint32_t x = 0;
+				do {
+					uint32_t xsize = width - x;
+					if (xsize > 32) xsize = 32;
+					//Serial.printf("    multi line %d\n", n);
+					uint32_t bits = fetchbits_unsigned(data, bitoffset, xsize);
+					drawFontBits(bits, xsize, origin_x + x, y, n);
+					bitoffset += xsize;
+					x += xsize;
+				} while (x < width);
+				y += n;
+				linecount -= n;
+			}
+		}
+
+		SPI.endTransaction();
+
 	}
 }
 
@@ -1428,76 +1489,83 @@ int16_t ILI9341_t3::strPixelLen(char * str)
 	return( maxlen );
 }
 
-void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat)
+/**
+ * If there are no repeated lines, do runs of solid pixels (fast hline)
+ */
+void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y)
 {
-#if 0			
-	// TODO: replace this *slow* code with something fast...
-	//Serial.printf("      %d bits at %d,%d: %X\n", numbits, x, y, bits);
+//Serial.print("bits\n");
 	if (bits == 0) return;
-	do {
-		uint32_t x1 = x;
-		uint32_t n = numbits;
-		do {
-			n--;
-			if (bits & (1 << n)) {
-				drawPixel(x1, y, textcolor);
-				//Serial.printf("        pixel at %d,%d\n", x1, y);
-			}
-			x1++;
-		} while (n > 0);
-		y++;
-		repeat--;
-	} while (repeat);
-#endif
-#if 1
-	if (bits == 0) return;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+
+	writecommand_cont(ILI9341_PASET); // Row addr set
+	writedata16_cont(y);   // YSTART
+	writedata16_cont(y);   // YEND	
+	
 	int w = 0;
 	do {
-		uint32_t x1 = x;
-		uint32_t n = numbits;		
-		
-		writecommand_cont(ILI9341_PASET); // Row addr set
-		writedata16_cont(y);   // YSTART
-		writedata16_cont(y);   // YEND	
-		
-		do {
-			n--;
-			if (bits & (1 << n)) {
-				w++;
-			}
-			else if (w > 0) {
-				// "drawFastHLine(x1 - w, y, w, textcolor)"
-				writecommand_cont(ILI9341_CASET); // Column addr set
-				writedata16_cont(x1 - w);   // XSTART
-				writedata16_cont(x1);   // XEND					
-				writecommand_cont(ILI9341_RAMWR);
-				while (w-- > 1) { // draw line
-					writedata16_cont(textcolor);
-				}
-				writedata16_last(textcolor);
-			}
-						
-			x1++;
-		} while (n > 0);
-
-		if (w > 0) {
-				// "drawFastHLine(x1 - w, y, w, textcolor)"
-				writecommand_cont(ILI9341_CASET); // Column addr set
-				writedata16_cont(x1 - w);   // XSTART
-				writedata16_cont(x1);   // XEND
-				writecommand_cont(ILI9341_RAMWR);				
-				while (w-- > 1) { //draw line
-					writedata16_cont(textcolor);
-				}
-				writedata16_last(textcolor);
+		numbits--;
+		if (bits & (1 << numbits)) {
+			w++;
 		}
-		
-		y++;
-		repeat--;
-	} while (repeat);
-	SPI.endTransaction();
-#endif	
+		else if (w > 0) {
+			writecommand_cont(ILI9341_CASET); // Column addr set
+			writedata16_cont(x - w);   // XSTART
+			writedata16_cont(x);   // XEND					
+			writecommand_cont(ILI9341_RAMWR);
+			while (w-- > 1) { // draw line
+				writedata16_cont(textcolor);
+			}
+			writedata16_last(textcolor);
+			w = 0;
+		}
+		x++;
+	} while (numbits > 0);
+
+	if (w > 0) {
+		writecommand_cont(ILI9341_CASET); // Column addr set
+		writedata16_cont(x - w);   // XSTART
+		writedata16_cont(x);   // XEND
+		writecommand_cont(ILI9341_RAMWR);				
+		while (w-- > 1) { //draw line
+			writedata16_cont(textcolor);
+		}
+		writedata16_last(textcolor);
+	}
+}
+/**
+ * If there are repeated lines, do vertical bars of solid pixels (fast vline)
+ */
+void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat)
+{
+	int w = 0;
+	uint32_t px;
+	do {
+		numbits--;
+		if (bits & (1 << numbits)) {
+			w++;
+		}
+		else if (w > 0) {
+			setAddr(x-w, y, x-1, y+repeat-1);
+			writecommand_cont(ILI9341_RAMWR);
+			px = w*repeat;
+			while (px-- > 1) {
+				writedata16_cont(textcolor);
+			}
+			writedata16_last(textcolor);
+			w = 0;
+		}
+		x++;
+	} while (numbits > 0);
+
+	if (w > 0) {
+		setAddr(x-w, y, x-1, y+repeat-1);
+		writecommand_cont(ILI9341_RAMWR);
+		px = w*repeat;
+		while (px-- > 1) {
+			writedata16_cont(textcolor);
+		}
+		writedata16_last(textcolor);
+	}
 }
 
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {
@@ -1531,6 +1599,9 @@ void ILI9341_t3::setTextColor(uint16_t c) {
 void ILI9341_t3::setTextColor(uint16_t c, uint16_t b) {
   textcolor   = c;
   textbgcolor = b;
+  // pre-expand colors for fast alpha-blending later
+  textcolorPrexpanded = (textcolor | (textcolor << 16)) & 0b00000111111000001111100000011111;
+  textbgcolorPrexpanded = (textbgcolor | (textbgcolor << 16)) & 0b00000111111000001111100000011111;
 }
 
 void ILI9341_t3::setTextWrap(boolean w) {

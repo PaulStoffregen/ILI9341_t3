@@ -1242,6 +1242,70 @@ static uint32_t fetchbits_signed(const uint8_t *p, uint32_t index, uint32_t requ
 	return (int32_t)val;
 }
 
+// Measure the dimensions for a single character
+void ILI9341_t3::measureChar(unsigned char c, uint16_t* w, uint16_t* h) {
+	// Treat non-breaking space as normal space
+	if (c == 0xa0) {
+		c = ' ';
+	}
+
+	// Is current font a T3 font or the default Adafruit-GFX font?
+	if (font) {
+		// ILI9341_T3 font
+		*h = font->cap_height;
+		*w = 0;
+
+		uint32_t bitoffset;
+		const uint8_t *data;
+
+		if (c >= font->index1_first && c <= font->index1_last) {
+			bitoffset = c - font->index1_first;
+			bitoffset *= font->bits_index;
+		}
+		else if (c >= font->index2_first && c <= font->index2_last) {
+			bitoffset = c - font->index2_first + font->index1_last - font->index1_first + 1;
+			bitoffset *= font->bits_index;
+		}
+		else if (font->unicode) {
+			return; // TODO: implement sparse unicode
+		}
+		else {
+			return;
+		}
+
+		data = font->data + fetchbits_unsigned(font->index, bitoffset, font->bits_index);
+
+		uint32_t encoding = fetchbits_unsigned(data, 0, 3);
+
+		if (encoding != 0) return;
+
+		//uint32_t width =
+		fetchbits_unsigned(data, 3, font->bits_width);
+		bitoffset = font->bits_width + 3;
+
+		//uint32_t height =
+		fetchbits_unsigned(data, bitoffset, font->bits_height);
+		bitoffset += font->bits_height;
+
+		//int32_t xoffset =
+		fetchbits_signed(data, bitoffset, font->bits_xoffset);
+		bitoffset += font->bits_xoffset;
+
+		//int32_t yoffset =
+		fetchbits_signed(data, bitoffset, font->bits_yoffset);
+		bitoffset += font->bits_yoffset;
+
+		uint32_t delta = fetchbits_unsigned(data, bitoffset, font->bits_delta);
+		*w = delta;
+	}
+	else {
+		// Adafruit-GFX default font has fixed 6x8 dimensions
+		*w = 6 * textsize;
+		*h = 8 * textsize;
+	}
+
+}
+
 
 void ILI9341_t3::drawFontChar(unsigned int c)
 {
@@ -1540,6 +1604,50 @@ void ILI9341_t3::setTextWrap(boolean w) {
 boolean ILI9341_t3::getTextWrap()
 {
 	return wrap;
+}
+
+// Return the width of a text string
+// - num =  max characters to process, or 0 for entire string (null-terminated)
+uint16_t ILI9341_t3::measureTextWidth(const char* text, int num) {
+	uint16_t maxH = 0;
+	uint16_t currH = 0;
+	uint16_t n = num;
+
+	if (n == 0) {
+		n = strlen(text);
+	};
+
+	for (int i = 0; i < n; i++) {
+		if (text[i] == '\n') {
+			// For multi-line strings, retain max width
+			if (currH > maxH)
+				maxH = currH;
+			currH = 0;
+		}
+		else {
+			uint16_t h, w;
+			measureChar(text[i], &w, &h);
+			currH += w;
+		}
+	}
+	uint16_t h = maxH > currH ? maxH : currH;
+	return h;
+}
+
+// Return the height of a text string
+// - num =  max characters to process, or 0 for entire string (null-terminated)
+uint16_t ILI9341_t3::measureTextHeight(const char* text, int num) {
+	int lines = 1;
+	uint16_t n = num;
+	if (n == 0) {
+		n = strlen(text);
+	};
+	for (int i = 0; i < n; i++) {
+		if (text[i] == '\n') {
+			lines++;
+		}
+	}
+	return ((lines - 1) * fontLineSpace() + fontCapHeight());
 }
 
 uint8_t ILI9341_t3::getRotation(void) {

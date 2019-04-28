@@ -282,6 +282,12 @@ class ILI9341_t3 : public Print
 	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
 	void setFontAdafruit(void) { font = NULL; }
 	void drawFontChar(unsigned int c);
+	void measureChar(uint8_t c, uint16_t* w, uint16_t* h);
+	uint16_t fontCapHeight() { return (font) ? font->cap_height : textsize * 8; }
+	uint16_t fontLineSpace() { return (font) ? font->line_space : textsize * 8; }
+	uint16_t fontGap() { return (font) ? font->line_space - font->cap_height : 0; };
+	uint16_t measureTextWidth(const char* text, int chars = 0);
+	uint16_t measureTextHeight(const char* text, int chars = 0);
 	int16_t strPixelLen(char * str);
 
  protected:

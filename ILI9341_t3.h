@@ -290,13 +290,23 @@ class ILI9341_t3 : public Print
 	uint16_t measureTextHeight(const char* text, int chars = 0);
 	int16_t strPixelLen(char * str);
 
- protected:
+protected:
+
+    enum UTF8_STATE {
+        UTF8_VALID,
+        UTF8_END,
+        UTF8_INVALID
+    };
+
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;
 	uint16_t textcolor, textbgcolor;
 	uint8_t textsize, rotation;
 	boolean wrap; // If set, 'wrap' text at right edge of display
 	const ILI9341_t3_font_t *font;
+    uint32_t _utf8_buffer;
+    UTF8_STATE _utf8_state;
+    uint8_t _utf8_byte_count;
 
   	uint8_t  _rst;
   	uint8_t _cs, _dc;
@@ -401,6 +411,8 @@ class ILI9341_t3 : public Print
 		writedata16_cont(color);
 	}
 	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
+	uint16_t binarySearch(const uint8_t* data, const uint16_t length, const uint32_t value);
+	void nextUTF8State(const uint8_t c);
 };
 
 #ifndef swap

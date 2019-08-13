@@ -20,7 +20,7 @@
 
 //Additional graphics routines by Tim Trzepacz, SoftEgg LLC added December 2015
 //(And then accidentally deleted and rewritten March 2016. Oops!)
-//Gradient support 
+//Gradient support
 //----------------
 //		fillRectVGradient	- fills area with vertical gradient
 //		fillRectHGradient	- fills area with horizontal gradient
@@ -53,7 +53,6 @@
 
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock
-#define SPICLOCK 30000000
 
 #define WIDTH  ILI9341_TFTWIDTH
 #define HEIGHT ILI9341_TFTHEIGHT
@@ -76,32 +75,35 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	textcolor = textbgcolor = 0xFFFF;
 	wrap      = true;
 	font      = NULL;
+	// Added to see how much impact actually using non hardware CS pin might be
+    _cspinmask = 0;
+    _csport = NULL;
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x0, y0, x1, y1);
 	writecommand_last(ILI9341_RAMWR); // write to RAM
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 void ILI9341_t3::pushColor(uint16_t color)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	writedata16_last(color);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 	if((x < 0) ||(x >= _width) || (y < 0) || (y >= _height)) return;
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMWR);
 	writedata16_last(color);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
@@ -110,14 +112,14 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	if((x >= _width) || (x < 0) || (y >= _height)) return;
 	if(y < 0) {	h += y; y = 0; 	}
 	if((y+h-1) >= _height) h = _height-y;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x, y, x, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	while (h-- > 1) {
 		writedata16_cont(color);
 	}
 	writedata16_last(color);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
@@ -126,14 +128,14 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	if((x >= _width) || (y >= _height) || (y < 0)) return;
 	if(x < 0) {	w += x; x = 0; 	}
 	if((x+w-1) >= _width)  w = _width-x;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x, y, x+w-1, y);
 	writecommand_cont(ILI9341_RAMWR);
 	while (w-- > 1) {
 		writedata16_cont(color);
 	}
 	writedata16_last(color);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 void ILI9341_t3::fillScreen(uint16_t color)
@@ -154,7 +156,7 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -163,11 +165,11 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 		}
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
-			SPI.endTransaction();
-			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+			endSPITransaction();
+			beginSPITransaction();
 		}
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // fillRectVGradient	- fills area with vertical gradient
@@ -187,7 +189,7 @@ void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -198,12 +200,12 @@ void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 		}
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
-			SPI.endTransaction();
-			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+			endSPITransaction();
+			beginSPITransaction();
 		}
 		r+=dr;g+=dg; b+=db;
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // fillRectHGradient	- fills area with horizontal gradient
@@ -223,7 +225,7 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 	// TODO: this can result in a very long transaction time
 	// should break this into multiple transactions, even though
 	// it'll cost more overhead, so we don't stall other SPI libs
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -236,12 +238,12 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 		color = RGB14tocolor565(r,g,b);
 		writedata16_last(color);
 		if (y > 1 && (y & 1)) {
-			SPI.endTransaction();
-			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+			endSPITransaction();
+			beginSPITransaction();
 		}
 		r=r1;g=g1;b=b1;
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // fillScreenVGradient - fills screen with vertical gradient
@@ -268,7 +270,7 @@ void ILI9341_t3::fillScreenHGradient(uint16_t color1, uint16_t color2)
 void ILI9341_t3::setRotation(uint8_t m)
 {
 	rotation = m % 4; // can't be higher than 3
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	writecommand_cont(ILI9341_MADCTL);
 	switch (rotation) {
 	case 0:
@@ -292,24 +294,24 @@ void ILI9341_t3::setRotation(uint8_t m)
 		_height = ILI9341_TFTWIDTH;
 		break;
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 	cursor_x = 0;
 	cursor_y = 0;
 }
 
 void ILI9341_t3::setScroll(uint16_t offset)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	writecommand_cont(ILI9341_VSCRSADD);
 	writedata16_last(offset);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 void ILI9341_t3::invertDisplay(boolean i)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 
@@ -347,10 +349,14 @@ uint8_t ILI9341_t3::readdata(void)
 
 uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 {
+    // Bail if not valid miso
+    if (_miso == 0xff) return 0;
+
+ #ifdef KINETISK
     uint16_t wTimeout = 0xffff;
     uint8_t r=0;
 
-    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+    beginSPITransaction();
     while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)) ; // wait until empty
 
     // Make sure the last frame has been sent...
@@ -394,18 +400,66 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout))  {
         r = KINETISK_SPI0.POPR;
     }
-    SPI.endTransaction();
+    endSPITransaction();
     return r;  // get the received byte... should check for it first...
+#elif defined(__IMXRT1052__) || defined(__IMXRT1062__)  // Teensy 4.x 
+    uint16_t wTimeout = 0xffff;
+    uint8_t r=0;
+
+    beginSPITransaction(ILI9341_SPICLOCK_READ);
+    // Lets assume that queues are empty as we just started transaction.
+	IMXRT_LPSPI4_S.CR = LPSPI_CR_MEN | LPSPI_CR_RRF | LPSPI_CR_RTF;   // actually clear both...
+    //writecommand(0xD9); // sekret command
+    maybeUpdateTCR(LPSPI_TCR_PCS(0) | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
+	IMXRT_LPSPI4_S.TDR = 0xD9;
+
+    // writedata(0x10 + index);
+	maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
+	IMXRT_LPSPI4_S.TDR = 0x10 + index;
+
+    // writecommand(c);
+    maybeUpdateTCR(LPSPI_TCR_PCS(0) | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
+	IMXRT_LPSPI4_S.TDR = c;
+
+    // readdata
+	maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7));
+	IMXRT_LPSPI4_S.TDR = 0;
+
+    // Now wait until completed.
+    wTimeout = 0xffff;
+    uint8_t rx_count = 4;
+    while (rx_count && wTimeout) {
+        if ((IMXRT_LPSPI4_S.RSR & LPSPI_RSR_RXEMPTY) == 0)  {
+            r =IMXRT_LPSPI4_S.RDR;  // Read any pending RX bytes in
+            rx_count--; //decrement count of bytes still levt
+        }
+    }
+    endSPITransaction();
+    return r;  // get the received byte... should check for it first...
+#else
+	beginSPITransaction();
+	writecommand_cont(0xD9);
+	writedata8_cont(0x10 + index);
+
+	writecommand_cont(c);
+	writedata8_cont(0);
+	uint8_t r = waitTransmitCompleteReturnLast();
+	endSPITransaction();
+	return r;
+
+#endif   
 }
 
 
 // Read Pixel at x,y and get back 16-bit packed color
 uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 {
+   if (_miso == 0xff) return 0xffff;	// bail if not valid miso
+#ifdef KINETISK	
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
 
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+	beginSPITransaction(ILI9341_SPICLOCK_READ);
 
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
@@ -429,18 +483,26 @@ uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)
 	g = KINETISK_SPI0.POPR;		// Read a GREEN byte of GRAM
 	b = KINETISK_SPI0.POPR;		// Read a BLUE byte of GRAM
 
-	SPI.endTransaction();
+	endSPITransaction();
 	return color565(r,g,b);
+#else
+	// Kinetisk
+	uint16_t colors = 0;
+	readRect(x, y, 1, 1, &colors);
+	return colors;
+#endif	
 }
 
 // Now lets see if we can read in multiple pixels
+#ifdef KINETISK
 void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors)
 {
+   if (_miso == 0xff) return;		// bail if not valid miso
 	uint8_t dummy __attribute__((unused));
 	uint8_t r,g,b;
 	uint16_t c = w * h;
 
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+	beginSPITransaction(ILI9341_SPICLOCK_READ);
 
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMRD); // read from RAM
@@ -475,13 +537,62 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 		// like waitFiroNotFull but does not pop our return queue
 		while ((KINETISK_SPI0.SR & (15 << 12)) > (3 << 12)) ;
 	}
-	SPI.endTransaction();
+	endSPITransaction();
+}
+#elif defined(__IMXRT1052__) || defined(__IMXRT1062__)  // Teensy 4.x 
+void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors)
+{
+   if (_miso == 0xff) return;		// bail if not valid miso
+
+	uint8_t rgb[3];               // RGB bytes received from the display
+	uint8_t rgbIdx = 0;
+	uint32_t txCount = w * h * 3; // number of bytes we will transmit to the display
+	uint32_t rxCount = txCount;   // number of bytes we will receive back from the display
+
+	beginSPITransaction(ILI9341_SPICLOCK_READ);
+
+	setAddr(x, y, x+w-1, y+h-1);
+	writecommand_cont(ILI9341_RAMRD); // read from RAM
+
+
+	// transmit a DUMMY byte before the color bytes
+	writedata8_last(0);		// BUGBUG:: maybe fix this as this will wait until the byte fully transfers through.
+
+	while (txCount || rxCount) {
+		// transmit another byte if possible
+		if (txCount && (IMXRT_LPSPI4_S.SR & LPSPI_SR_TDF)) {
+			txCount--;
+			if (txCount) {
+				IMXRT_LPSPI4_S.TDR = 0;
+			} else {
+				maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7)); // remove the CONTINUE...
+				while ((IMXRT_LPSPI4_S.SR & LPSPI_SR_TDF) == 0) ;		// wait if queue was full
+				IMXRT_LPSPI4_S.TDR = 0;
+			}
+		}
+
+		// receive another byte if possible, and either skip it or store the color
+		if (rxCount && !(IMXRT_LPSPI4_S.RSR & LPSPI_RSR_RXEMPTY)) {
+			rgb[rgbIdx] = IMXRT_LPSPI4_S.RDR;
+
+			rxCount--;
+			rgbIdx++;
+			if (rgbIdx == 3) {
+				rgbIdx = 0;
+				*pcolors++ = color565(rgb[0], rgb[1], rgb[2]);
+			}
+		}
+	}
+
+	// We should have received everything so should be done
+	endSPITransaction();
 }
 
+#endif
 // Now lets see if we can writemultiple pixels
 void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors)
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -490,7 +601,7 @@ void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 		}
 		writedata16_last(*pcolors++);
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // writeRect8BPP - 	write 8 bit per pixel paletted bitmap
@@ -498,7 +609,7 @@ void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 //					color palette data in array at palette
 void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -507,7 +618,7 @@ void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 		}
 		writedata16_last(palette[*pixels++]);
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // writeRect4BPP - 	write 4 bit per pixel paletted bitmap
@@ -516,7 +627,7 @@ void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 //					width must be at least 2 pixels
 void ILI9341_t3::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -527,7 +638,7 @@ void ILI9341_t3::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 		writedata16_cont(palette[((*pixels)>>4)&0xF]);
 		writedata16_last(palette[(*pixels++)&0xF]);
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // writeRect2BPP - 	write 2 bit per pixel paletted bitmap
@@ -536,7 +647,7 @@ void ILI9341_t3::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 //					width must be at least 4 pixels
 void ILI9341_t3::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -552,7 +663,7 @@ void ILI9341_t3::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 		writedata16_cont(palette[((*pixels)>>2)&0x3]);
 		writedata16_last(palette[(*pixels++)&0x3]);
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // writeRect1BPP - 	write 1 bit per pixel paletted bitmap
@@ -561,7 +672,7 @@ void ILI9341_t3::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 //					width must be at least 8 pixels
 void ILI9341_t3::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t *pixels, const uint16_t * palette )
 {
-   	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+   	beginSPITransaction();
 	setAddr(x, y, x+w-1, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
@@ -585,7 +696,7 @@ void ILI9341_t3::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 		writedata16_cont(palette[((*pixels)>>1)&0x1]);
 		writedata16_last(palette[(*pixels++)&0x1]);
 	}
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 
@@ -618,26 +729,76 @@ static const uint8_t init_commands[] = {
 void ILI9341_t3::begin(void)
 {
     // verify SPI pins are valid;
+    #ifdef KINETISK
     #if defined(__MK64FX512__) || defined(__MK66FX1M0__)
-    if ((_mosi == 11 || _mosi == 7 || _mosi == 28) && (_miso == 12 || _miso == 8 || _miso == 39) 
-    		&& (_sclk == 13 || _sclk == 14 || _sclk == 27)) {
+    // Allow to work with mimimum of MOSI and SCK
+    if ((_mosi == 255 || _mosi == 11 || _mosi == 7 || _mosi == 28)  && (_sclk == 255 || _sclk == 13 || _sclk == 14 || _sclk == 27)) 
 	#else
-    if ((_mosi == 11 || _mosi == 7) && (_miso == 12 || _miso == 8) && (_sclk == 13 || _sclk == 14)) {
+    if ((_mosi == 255 || _mosi == 11 || _mosi == 7) && (_sclk == 255 || _sclk == 13 || _sclk == 14)) 
     #endif	
-        SPI.setMOSI(_mosi);
-        SPI.setMISO(_miso);
-        SPI.setSCK(_sclk);
-	} else
+    {
+        
+		if (_mosi != 255) SPI.setMOSI(_mosi);
+        if (_sclk != 255) SPI.setSCK(_sclk);
+
+        // Now see if valid MISO
+	    #if defined(__MK64FX512__) || defined(__MK66FX1M0__)
+	    if (_miso == 12 || _miso == 8 || _miso == 39)
+		#else
+	    if (_miso == 12 || _miso == 8)
+	    #endif
+		{	
+        	SPI.setMISO(_miso);
+    	} else {
+			_miso = 0xff;	// set miso to 255 as flag it is bad
+		}
+	} else {
         return; // not valid pins...
+	}
 	SPI.begin();
 	if (SPI.pinIsChipSelect(_cs, _dc)) {
 		pcs_data = SPI.setCS(_cs);
 		pcs_command = pcs_data | SPI.setCS(_dc);
 	} else {
-		pcs_data = 0;
-		pcs_command = 0;
-		return;
+		// See if at least DC is on chipselect pin, if so try to limp along...
+		if (SPI.pinIsChipSelect(_dc)) {
+			pcs_data = 0;
+			pcs_command = pcs_data | SPI.setCS(_dc);
+			pinMode(_cs, OUTPUT);
+			_csport    = portOutputRegister(digitalPinToPort(_cs));
+			_cspinmask = digitalPinToBitMask(_cs);
+
+
+		} else {
+			pcs_data = 0;
+
+		}
 	}
+#elif defined(__IMXRT1052__) || defined(__IMXRT1062__)  // Teensy 4.x 
+	_pending_rx_count = 0;
+	SPI.begin();
+	_csport = portOutputRegister(_cs);
+	_cspinmask = digitalPinToBitMask(_cs);
+	pinMode(_cs, OUTPUT);	
+	DIRECT_WRITE_HIGH(_csport, _cspinmask);
+	_spi_tcr_current = IMXRT_LPSPI4_S.TCR; // get the current TCR value 
+
+	// TODO:  Need to setup DC to actually work.
+	if (SPI.pinIsChipSelect(_dc)) {
+	 	SPI.setCS(_dc);
+	 	_dcport = 0;
+	 	_dcpinmask = 0;
+	} else {
+		//Serial.println("ILI9341_t3n: Error not DC is not valid hardware CS pin");
+		_dcport = portOutputRegister(_dc);
+		_dcpinmask = digitalPinToBitMask(_dc);
+		pinMode(_dc, OUTPUT);	
+		DIRECT_WRITE_HIGH(_dcport, _dcpinmask);
+	}
+	maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7));
+
+
+#endif
 	// toggle RST low to reset
 	if (_rst < 255) {
 		pinMode(_rst, OUTPUT);
@@ -660,7 +821,7 @@ void ILI9341_t3::begin(void)
 	x = readcommand8(ILI9341_RDSELFDIAG);
 	Serial.print("\nSelf Diagnostic: 0x"); Serial.println(x, HEX);
 	*/
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	const uint8_t *addr = init_commands;
 	while (1) {
 		uint8_t count = *addr++;
@@ -671,12 +832,12 @@ void ILI9341_t3::begin(void)
 		}
 	}
 	writecommand_last(ILI9341_SLPOUT);    // Exit Sleep
-	SPI.endTransaction();
+	endSPITransaction();
 
 	delay(120); 		
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	writecommand_last(ILI9341_DISPON);    // Display on
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 
@@ -872,7 +1033,7 @@ void ILI9341_t3::drawLine(int16_t x0, int16_t y0,
 		ystep = -1;
 	}
 
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	int16_t xbegin = x0;
 	if (steep) {
 		for (; x0<=x1; x0++) {
@@ -913,19 +1074,19 @@ void ILI9341_t3::drawLine(int16_t x0, int16_t y0,
 		}
 	}
 	writecommand_last(ILI9341_NOP);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // Draw a rectangle
 void ILI9341_t3::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	HLine(x, y, w, color);
 	HLine(x, y+h-1, w, color);
 	VLine(x, y, h, color);
 	VLine(x+w-1, y, h, color);
 	writecommand_last(ILI9341_NOP);
-	SPI.endTransaction();
+	endSPITransaction();
 }
 
 // Draw a rounded rectangle
@@ -991,7 +1152,7 @@ void ILI9341_t3::fillTriangle ( int16_t x0, int16_t y0,
     return;
   }
 
-  int16_t
+  int32_t
     dx01 = x1 - x0,
     dy01 = y1 - y0,
     dx02 = x2 - x0,
@@ -1177,7 +1338,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		}
 	} else {
 		// This solid background approach is about 5 time faster
-		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		beginSPITransaction();
 		setAddr(x, y, x + 6 * size - 1, y + 8 * size - 1);
 		writecommand_cont(ILI9341_RAMWR);
 		uint8_t xr, yr;
@@ -1202,7 +1363,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 			mask = mask << 1;
 		}
 		writecommand_last(ILI9341_NOP);
-		SPI.endTransaction();
+		endSPITransaction();
 	}
 }
 
@@ -1515,7 +1676,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 #endif
 #if 1
 	if (bits == 0) return;
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	int w = 0;
 	do {
 		uint32_t x1 = x;
@@ -1560,7 +1721,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint3
 		y++;
 		repeat--;
 	} while (repeat);
-	SPI.endTransaction();
+	endSPITransaction();
 #endif	
 }
 
@@ -1655,15 +1816,15 @@ uint8_t ILI9341_t3::getRotation(void) {
 }
 
 void ILI9341_t3::sleep(bool enable) {
-	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+	beginSPITransaction();
 	if (enable) {
 		writecommand_cont(ILI9341_DISPOFF);		
 		writecommand_last(ILI9341_SLPIN);	
-		  SPI.endTransaction();
+		  endSPITransaction();
 	} else {
 		writecommand_cont(ILI9341_DISPON);
 		writecommand_last(ILI9341_SLPOUT);
-		SPI.endTransaction();
+		endSPITransaction();
 		delay(5);
 	}
 }

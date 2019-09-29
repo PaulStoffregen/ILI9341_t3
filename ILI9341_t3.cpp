@@ -55,9 +55,6 @@
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock
 #define SPICLOCK 30000000
 
-#define WIDTH  ILI9341_TFTWIDTH
-#define HEIGHT ILI9341_TFTHEIGHT
-
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
 ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_t sclk, uint8_t miso)
@@ -68,8 +65,8 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	_mosi = mosi;
 	_sclk = sclk;
 	_miso = miso;
-	_width    = WIDTH;
-	_height   = HEIGHT;
+	_width    = ILI9341_TFTWIDTH;
+	_height   = ILI9341_TFTHEIGHT;
 	rotation  = 0;
 	cursor_y  = cursor_x    = 0;
 	textsize  = 1;
@@ -91,7 +88,7 @@ void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y
 void ILI9341_t3::pushColor(uint16_t color)
 {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	writedata16_last(color);
+	write16BitColor(color,true);
 	SPI.endTransaction();
 }
 
@@ -103,7 +100,8 @@ void ILI9341_t3::drawPixel(int16_t x, int16_t y, uint16_t color) {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	setAddr(x, y, x, y);
 	writecommand_cont(ILI9341_RAMWR);
-	writedata16_last(color);
+//	writedata16_last(color);
+  write16BitColor(color,true);
 	SPI.endTransaction();
 }
 
@@ -121,9 +119,9 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	setAddr(x, y, x, y+h-1);
 	writecommand_cont(ILI9341_RAMWR);
 	while (h-- > 1) {
-		writedata16_cont(color);
+		write16BitColor(color);
 	}
-	writedata16_last(color);
+	write16BitColor(color,true);
 	SPI.endTransaction();
 }
 
@@ -142,9 +140,9 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	setAddr(x, y, x+w-1, y);
 	writecommand_cont(ILI9341_RAMWR);
 	while (w-- > 1) {
-		writedata16_cont(color);
+		write16BitColor(color);
 	}
-	writedata16_last(color);
+	write16BitColor(color,true);
 	SPI.endTransaction();
 }
 
@@ -163,10 +161,10 @@ void ILI9341_t3::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t* colors
 	writecommand_cont(ILI9341_RAMWR);
 	int16_t i = 0;
 	while (i < (h-1)) {
-		writedata16_cont(colors[i]);
+		write16BitColor(colors[i]);
 		i++;
 	}
-	writedata16_last(colors[i]);
+	write16BitColor(colors[i],true);
 	SPI.endTransaction();
 }
 
@@ -186,10 +184,10 @@ void ILI9341_t3::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t* colors
 	writecommand_cont(ILI9341_RAMWR);
 	int16_t i = 0;
 	while (i < (w-1)) {
-		writedata16_cont(colors[i]);
+		write16BitColor(colors[i]);
 		i++;
 	}
-	writedata16_last(colors[i]);
+	write16BitColor(colors[i],true);
 	SPI.endTransaction();
 }
 
@@ -219,9 +217,9 @@ void ILI9341_t3::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
 		for(x=w; x>1; x--) {
-			writedata16_cont(color);
+			write16BitColor(color);
 		}
-		writedata16_last(color);
+		write16BitColor(color,true);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();
 			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
@@ -254,9 +252,9 @@ void ILI9341_t3::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 		uint16_t color = RGB14tocolor565(r,g,b);
 
 		for(x=w; x>1; x--) {
-			writedata16_cont(color);
+			write16BitColor(color);
 		}
-		writedata16_last(color);
+		write16BitColor(color,true);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();
 			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
@@ -290,11 +288,11 @@ void ILI9341_t3::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h, u
 		uint16_t color;
 		for(x=w; x>1; x--) {
 			color = RGB14tocolor565(r,g,b);
-			writedata16_cont(color);
+			write16BitColor(color);
 			r+=dr;g+=dg; b+=db;
 		}
 		color = RGB14tocolor565(r,g,b);
-		writedata16_last(color);
+		write16BitColor(color,true);
 		if (y > 1 && (y & 1)) {
 			SPI.endTransaction();
 			SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
@@ -333,23 +331,23 @@ void ILI9341_t3::setRotation(uint8_t m)
 	switch (rotation) {
 	case 0:
 		writedata8_last(MADCTL_MX | MADCTL_BGR);
-		_width  = ILI9341_TFTWIDTH;
-		_height = ILI9341_TFTHEIGHT;
+		_width  = hwWidth();
+		_height = hwHeight();
 		break;
 	case 1:
 		writedata8_last(MADCTL_MV | MADCTL_BGR);
-		_width  = ILI9341_TFTHEIGHT;
-		_height = ILI9341_TFTWIDTH;
+		_width  = hwHeight();
+		_height = hwWidth();
 		break;
 	case 2:
 		writedata8_last(MADCTL_MY | MADCTL_BGR);
-		_width  = ILI9341_TFTWIDTH;
-		_height = ILI9341_TFTHEIGHT;
+		_width  = hwWidth();
+		_height = hwHeight();
 		break;
 	case 3:
 		writedata8_last(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
-		_width  = ILI9341_TFTHEIGHT;
-		_height = ILI9341_TFTWIDTH;
+		_width  = hwHeight();
+		_height = hwWidth();
 		break;
 	}
 	SPI.endTransaction();
@@ -363,7 +361,7 @@ void ILI9341_t3::setScroll(uint16_t offset)
 {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writecommand_cont(ILI9341_VSCRSADD);
-	writedata16_last(offset);
+	write16BitColor(offset,true);
 	SPI.endTransaction();
 }
 
@@ -373,15 +371,6 @@ void ILI9341_t3::invertDisplay(boolean i)
 	writecommand_last(i ? ILI9341_INVON : ILI9341_INVOFF);
 	SPI.endTransaction();
 }
-
-
-
-
-
-
-
-
-
 
 /*
 uint8_t ILI9341_t3::readdata(void)
@@ -548,9 +537,9 @@ void ILI9341_t3::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
 		for(x=w; x>1; x--) {
-			writedata16_cont(*pcolors++);
+			write16BitColor(*pcolors++);
 		}
-		writedata16_last(*pcolors++);
+		write16BitColor(*pcolors++,true);
 	}
 	SPI.endTransaction();
 }
@@ -565,9 +554,9 @@ void ILI9341_t3::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 	writecommand_cont(ILI9341_RAMWR);
 	for(y=h; y>0; y--) {
 		for(x=w; x>1; x--) {
-			writedata16_cont(palette[*pixels++]);
+			write16BitColor(palette[*pixels++]);
 		}
-		writedata16_last(palette[*pixels++]);
+		write16BitColor(palette[*pixels++],true);
 	}
 	SPI.endTransaction();
 }
@@ -650,32 +639,36 @@ void ILI9341_t3::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h, const
 	SPI.endTransaction();
 }
 
+const uint8_t* ILI9341_t3::init_commands() {
+  static const uint8_t init_commands[] = {
+    4, 0xEF, 0x03, 0x80, 0x02,
+    4, 0xCF, 0x00, 0XC1, 0X30,
+    5, 0xED, 0x64, 0x03, 0X12, 0X81,
+    4, 0xE8, 0x85, 0x00, 0x78,
+    6, 0xCB, 0x39, 0x2C, 0x00, 0x34, 0x02,
+    2, 0xF7, 0x20,
+    3, 0xEA, 0x00, 0x00,
+    2, ILI9341_PWCTR1, 0x23, // Power control
+    2, ILI9341_PWCTR2, 0x10, // Power control
+    3, ILI9341_VMCTR1, 0x3e, 0x28, // VCM control
+    2, ILI9341_VMCTR2, 0x86, // VCM control2
+    2, ILI9341_MADCTL, 0x48, // Memory Access Control
+    2, ILI9341_PIXFMT, 0x55,
+    3, ILI9341_FRMCTR1, 0x00, 0x18,
+    4, ILI9341_DFUNCTR, 0x08, 0x82, 0x27, // Display Function Control
+    2, 0xF2, 0x00, // Gamma Function Disable
+    2, ILI9341_GAMMASET, 0x01, // Gamma curve selected
+    16, ILI9341_GMCTRP1, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08,
+      0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00, // Set Gamma
+    16, ILI9341_GMCTRN1, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07,
+      0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F, // Set Gamma
+    3, 0xb1, 0x00, 0x10, // FrameRate Control 119Hz
+    0
+  };
+return init_commands;
+}
 
-static const uint8_t init_commands[] = {
-	4, 0xEF, 0x03, 0x80, 0x02,
-	4, 0xCF, 0x00, 0XC1, 0X30,
-	5, 0xED, 0x64, 0x03, 0X12, 0X81,
-	4, 0xE8, 0x85, 0x00, 0x78,
-	6, 0xCB, 0x39, 0x2C, 0x00, 0x34, 0x02,
-	2, 0xF7, 0x20,
-	3, 0xEA, 0x00, 0x00,
-	2, ILI9341_PWCTR1, 0x23, // Power control
-	2, ILI9341_PWCTR2, 0x10, // Power control
-	3, ILI9341_VMCTR1, 0x3e, 0x28, // VCM control
-	2, ILI9341_VMCTR2, 0x86, // VCM control2
-	2, ILI9341_MADCTL, 0x48, // Memory Access Control
-	2, ILI9341_PIXFMT, 0x55,
-	3, ILI9341_FRMCTR1, 0x00, 0x18,
-	4, ILI9341_DFUNCTR, 0x08, 0x82, 0x27, // Display Function Control
-	2, 0xF2, 0x00, // Gamma Function Disable
-	2, ILI9341_GAMMASET, 0x01, // Gamma curve selected
-	16, ILI9341_GMCTRP1, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08,
-		0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00, // Set Gamma
-	16, ILI9341_GMCTRN1, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07,
-		0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F, // Set Gamma
-	3, 0xb1, 0x00, 0x10, // FrameRate Control 119Hz
-	0
-};
+
 
 void ILI9341_t3::begin(void)
 {
@@ -723,7 +716,7 @@ void ILI9341_t3::begin(void)
 	Serial.print("\nSelf Diagnostic: 0x"); Serial.println(x, HEX);
 	*/
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-	const uint8_t *addr = init_commands;
+	const uint8_t *addr = init_commands();
 	while (1) {
 		uint8_t count = *addr++;
 		if (count-- == 0) break;
@@ -1317,11 +1310,11 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 						color = bgcolor;
 					}
 					for (xr=0; xr < size; xr++) {
-						writedata16_cont(color);
+						write16BitColor(color);
 					}
 				}
 				for (xr=0; xr < size; xr++) {
-					writedata16_cont(bgcolor);
+					write16BitColor(bgcolor);
 				}
 			}
 			mask = mask << 1;
@@ -1688,7 +1681,7 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, int32_t x, int32_
 				while (w-- > 1) { // draw line
 					writedata16_cont(textcolor);
 				}
-				writedata16_last(textcolor);
+				write16BitColor(textcolor,true);
 			}
 
 			x1++;
@@ -1701,9 +1694,9 @@ void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, int32_t x, int32_
 				writedata16_cont(x1);   // XEND
 				writecommand_cont(ILI9341_RAMWR);
 				while (w-- > 1) { //draw line
-					writedata16_cont(textcolor);
+					write16BitColor(textcolor);
 				}
-				writedata16_last(textcolor);
+				write16BitColor(textcolor,true);
 		}
 
 		y++;

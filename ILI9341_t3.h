@@ -318,6 +318,21 @@ class ILI9341_t3 : public Print
 	int16_t strPixelLen(char * str);
 
  protected:
+  virtual const uint8_t* init_commands();
+  virtual uint16_t hwWidth() { return ILI9341_TFTWIDTH; };
+  virtual uint16_t hwHeight() { return ILI9341_TFTHEIGHT; };
+  virtual void write16BitColor(uint16_t color, bool last_pixel=false) {
+    if (last_pixel)
+      writedata16_last(color);
+    else
+      writedata16_cont(color);
+  }
+
+  virtual void write16BitColor(uint16_t color, uint16_t count, bool last_pixel) {
+  // TODO
+  }
+
+
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;
 
@@ -414,11 +429,13 @@ class ILI9341_t3 : public Print
 		KINETISK_SPI0.PUSHR = c | (pcs_data << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_EOQ;
 		waitTransmitComplete(mcr);
 	}
+
 	void writedata16_last(uint16_t d) __attribute__((always_inline)) {
 		uint32_t mcr = SPI0_MCR;
 		KINETISK_SPI0.PUSHR = d | (pcs_data << 16) | SPI_PUSHR_CTAS(1) | SPI_PUSHR_EOQ;
 		waitTransmitComplete(mcr);
 	}
+
 	void HLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	  __attribute__((always_inline)) {
 
@@ -500,6 +517,7 @@ private:
 	boolean currstate, laststate;
 };
 #endif
+
 
 #endif // __cplusplus
 

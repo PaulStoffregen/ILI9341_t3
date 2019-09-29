@@ -319,8 +319,8 @@ class ILI9341_t3 : public Print
 
  protected:
   virtual const uint8_t* init_commands();
-  virtual uint16_t hwWidth() { return ILI9341_TFTWIDTH; };
-  virtual uint16_t hwHeight() { return ILI9341_TFTHEIGHT; };
+  virtual uint16_t tftWidth() { return ILI9341_TFTWIDTH; };
+  virtual uint16_t tftHeight() { return ILI9341_TFTHEIGHT; };
   virtual void write16BitColor(uint16_t color, bool last_pixel=false) {
     if (last_pixel)
       writedata16_last(color);

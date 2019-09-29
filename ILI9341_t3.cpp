@@ -331,23 +331,23 @@ void ILI9341_t3::setRotation(uint8_t m)
 	switch (rotation) {
 	case 0:
 		writedata8_last(MADCTL_MX | MADCTL_BGR);
-		_width  = hwWidth();
-		_height = hwHeight();
+		_width  = tftWidth();
+		_height = tftHeight();
 		break;
 	case 1:
 		writedata8_last(MADCTL_MV | MADCTL_BGR);
-		_width  = hwHeight();
-		_height = hwWidth();
+		_width  = tftHeight();
+		_height = tftWidth();
 		break;
 	case 2:
 		writedata8_last(MADCTL_MY | MADCTL_BGR);
-		_width  = hwWidth();
-		_height = hwHeight();
+		_width  = tftWidth();
+		_height = tftHeight();
 		break;
 	case 3:
 		writedata8_last(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
-		_width  = hwHeight();
-		_height = hwWidth();
+		_width  = tftHeight();
+		_height = tftWidth();
 		break;
 	}
 	SPI.endTransaction();

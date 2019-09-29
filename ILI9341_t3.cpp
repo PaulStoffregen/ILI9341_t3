@@ -361,7 +361,7 @@ void ILI9341_t3::setScroll(uint16_t offset)
 {
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writecommand_cont(ILI9341_VSCRSADD);
-	write16BitColor(offset,true);
+	writedata16_last(offset);
 	SPI.endTransaction();
 }
 
@@ -732,6 +732,9 @@ void ILI9341_t3::begin(void)
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	writecommand_last(ILI9341_DISPON);    // Display on
 	SPI.endTransaction();
+
+	// in case we rebooted in the middle of a scroll
+	setScroll(0);
 }
 
 

@@ -410,19 +410,19 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     // Lets assume that queues are empty as we just started transaction.
 	IMXRT_LPSPI4_S.CR = LPSPI_CR_MEN | LPSPI_CR_RRF | LPSPI_CR_RTF;   // actually clear both...
     //writecommand(0xD9); // sekret command
-    maybeUpdateTCR(LPSPI_TCR_PCS(0) | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
+    maybeUpdateTCR(_tcr_dc_assert | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
 	IMXRT_LPSPI4_S.TDR = 0xD9;
 
     // writedata(0x10 + index);
-	maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
+	maybeUpdateTCR(_tcr_dc_not_assert | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
 	IMXRT_LPSPI4_S.TDR = 0x10 + index;
 
     // writecommand(c);
-    maybeUpdateTCR(LPSPI_TCR_PCS(0) | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
+    maybeUpdateTCR(_tcr_dc_assert | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
 	IMXRT_LPSPI4_S.TDR = c;
 
     // readdata
-	maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7));
+	maybeUpdateTCR(_tcr_dc_not_assert | LPSPI_TCR_FRAMESZ(7));
 	IMXRT_LPSPI4_S.TDR = 0;
 
     // Now wait until completed.
@@ -565,7 +565,7 @@ void ILI9341_t3::readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *
 			if (txCount) {
 				IMXRT_LPSPI4_S.TDR = 0;
 			} else {
-				maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7)); // remove the CONTINUE...
+				maybeUpdateTCR(_tcr_dc_not_assert | LPSPI_TCR_FRAMESZ(7)); // remove the CONTINUE...
 				while ((IMXRT_LPSPI4_S.SR & LPSPI_SR_TDF) == 0) ;		// wait if queue was full
 				IMXRT_LPSPI4_S.TDR = 0;
 			}
@@ -785,17 +785,22 @@ void ILI9341_t3::begin(void)
 
 	// TODO:  Need to setup DC to actually work.
 	if (SPI.pinIsChipSelect(_dc)) {
-	 	SPI.setCS(_dc);
+	 	uint8_t dc_cs_index = SPI.setCS(_dc);
 	 	_dcport = 0;
 	 	_dcpinmask = 0;
+	 	dc_cs_index--;	// convert to 0 based
+		_tcr_dc_assert = LPSPI_TCR_PCS(dc_cs_index);
+    	_tcr_dc_not_assert = LPSPI_TCR_PCS(3);
 	} else {
 		//Serial.println("ILI9341_t3n: Error not DC is not valid hardware CS pin");
 		_dcport = portOutputRegister(_dc);
 		_dcpinmask = digitalPinToBitMask(_dc);
 		pinMode(_dc, OUTPUT);	
 		DIRECT_WRITE_HIGH(_dcport, _dcpinmask);
+		_tcr_dc_assert = LPSPI_TCR_PCS(0);
+    	_tcr_dc_not_assert = LPSPI_TCR_PCS(1);
 	}
-	maybeUpdateTCR(LPSPI_TCR_PCS(1) | LPSPI_TCR_FRAMESZ(7));
+	maybeUpdateTCR(_tcr_dc_not_assert | LPSPI_TCR_FRAMESZ(7));
 
 
 #endif

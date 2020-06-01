@@ -322,12 +322,19 @@ class ILI9341_t3 : public Print
 #endif
 	void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 	  __attribute__((always_inline)) {
-		writecommand_cont(ILI9341_CASET); // Column addr set
-		writedata16_cont(x0);   // XSTART
-		writedata16_cont(x1);   // XEND
-		writecommand_cont(ILI9341_PASET); // Row addr set
-		writedata16_cont(y0);   // YSTART
-		writedata16_cont(y1);   // YEND
+		static uint16_t old_x0=-1, old_x1, old_y0=-1, old_y1;
+		if (x0 != old_x0 || x1 != old_x1) {
+			writecommand_cont(ILI9341_CASET); // Column addr set
+			writedata16_cont(x0);   // XSTART
+			writedata16_cont(x1);   // XEND
+			old_x0 = x0; old_x1 = x1;
+		}
+		if (y0 != old_y0 || y1 != old_y1) {
+			writecommand_cont(ILI9341_PASET); // Row addr set
+			writedata16_cont(y0);   // YSTART
+			writedata16_cont(y1);   // YEND
+			old_y0 = y0; old_y1 = y1;
+		}
 	}
 
 //----------------------------------------------------------------------

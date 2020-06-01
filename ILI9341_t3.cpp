@@ -1260,87 +1260,28 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		return;
 
 	if (fgcolor == bgcolor) {
-		// This transparent approach is only about 20% faster
-		if (size == 1) {
-			uint8_t mask = 0x01;
-			int16_t xoff, yoff;
-			for (yoff=0; yoff < 8; yoff++) {
-				uint8_t line = 0;
-				for (xoff=0; xoff < 5; xoff++) {
-					if (glcdfont[c * 5 + xoff] & mask) line |= 1;
-					line <<= 1;
+		int16_t xoff, yoff, count;
+		uint8_t mask = 0x1;
+		uint8_t *s = (uint8_t *)&glcdfont[c * 5];
+		for (yoff=0; yoff < 8; yoff++) {
+			xoff = 0;
+			while (xoff < 5) {
+				while (xoff < 5 && !(s[xoff] & mask))
+					xoff++; // skip transparent bg
+				count = 0;
+				while (xoff < 5 && s[xoff] & mask) { // fg
+					count++;
+					xoff++;
 				}
-				line >>= 1;
-				xoff = 0;
-				while (line) {
-					if (line == 0x1F) {
-						drawFastHLine(x + xoff, y + yoff, 5, fgcolor);
-						break;
-					} else if (line == 0x1E) {
-						drawFastHLine(x + xoff, y + yoff, 4, fgcolor);
-						break;
-					} else if ((line & 0x1C) == 0x1C) {
-						drawFastHLine(x + xoff, y + yoff, 3, fgcolor);
-						line <<= 4;
-						xoff += 4;
-					} else if ((line & 0x18) == 0x18) {
-						drawFastHLine(x + xoff, y + yoff, 2, fgcolor);
-						line <<= 3;
-						xoff += 3;
-					} else if ((line & 0x10) == 0x10) {
-						drawPixel(x + xoff, y + yoff, fgcolor);
-						line <<= 2;
-						xoff += 2;
-					} else {
-						line <<= 1;
-						xoff += 1;
-					}
+				if (count) {
+					if (size == 1)
+						drawFastHLine(x+xoff-count, y + yoff, count, fgcolor);
+					else
+						fillRect(x + (xoff-count) * size, y + yoff * size, count * size, size, fgcolor);
 				}
-				mask = mask << 1;
-			}
-		} else {
-			uint8_t mask = 0x01;
-			int16_t xoff, yoff;
-			for (yoff=0; yoff < 8; yoff++) {
-				uint8_t line = 0;
-				for (xoff=0; xoff < 5; xoff++) {
-					if (glcdfont[c * 5 + xoff] & mask) line |= 1;
-					line <<= 1;
-				}
-				line >>= 1;
-				xoff = 0;
-				while (line) {
-					if (line == 0x1F) {
-						fillRect(x + xoff * size, y + yoff * size,
-							5 * size, size, fgcolor);
-						break;
-					} else if (line == 0x1E) {
-						fillRect(x + xoff * size, y + yoff * size,
-							4 * size, size, fgcolor);
-						break;
-					} else if ((line & 0x1C) == 0x1C) {
-						fillRect(x + xoff * size, y + yoff * size,
-							3 * size, size, fgcolor);
-						line <<= 4;
-						xoff += 4;
-					} else if ((line & 0x18) == 0x18) {
-						fillRect(x + xoff * size, y + yoff * size,
-							2 * size, size, fgcolor);
-						line <<= 3;
-						xoff += 3;
-					} else if ((line & 0x10) == 0x10) {
-						fillRect(x + xoff * size, y + yoff * size,
-							size, size, fgcolor);
-						line <<= 2;
-						xoff += 2;
-					} else {
-						line <<= 1;
-						xoff += 1;
-					}
-				}
-				mask = mask << 1;
-			}
-		}
+			} // while xoff
+			mask = mask << 1;
+		} // for y
 	} else {
 		// This solid background approach is about 5 time faster
 		beginSPITransaction();
@@ -1352,11 +1293,7 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 		for (y=0; y < 8; y++) {
 			for (yr=0; yr < size; yr++) {
 				for (x=0; x < 5; x++) {
-					if (glcdfont[c * 5 + x] & mask) {
-						color = fgcolor;
-					} else {
-						color = bgcolor;
-					}
+					color = (glcdfont[c * 5 + x] & mask) ? fgcolor : bgcolor;
 					for (xr=0; xr < size; xr++) {
 						writedata16_cont(color);
 					}

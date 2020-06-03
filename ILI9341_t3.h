@@ -182,6 +182,7 @@ class ILI9341_t3 : public Print
 	ILI9341_t3(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255, uint8_t _MOSI=11, uint8_t _SCLK=13, uint8_t _MISO=12);
 	void begin(void);
   	void sleep(bool enable);		
+        void setClock(unsigned long clk) { _clock = clk;}
 	void pushColor(uint16_t color);
 	void fillScreen(uint16_t color);
 	void drawPixel(int16_t x, int16_t y, uint16_t color);
@@ -295,6 +296,7 @@ class ILI9341_t3 : public Print
 	int16_t strPixelLen(char * str);
 
  protected:
+        unsigned long _clock = ILI9341_SPICLOCK;
 	int16_t _width, _height; // Display w/h as modified by current rotation
 	int16_t  cursor_x, cursor_y;
 	uint16_t textcolor, textbgcolor;

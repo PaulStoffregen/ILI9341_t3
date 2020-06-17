@@ -322,9 +322,9 @@ class ILI9341_t3 : public Print
     uint8_t _cspinmask;
     volatile uint8_t *_csport;
 #endif
+	uint16_t old_x0=-1, old_x1, old_y0=-1, old_y1;
 	void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 	  __attribute__((always_inline)) {
-		static uint16_t old_x0=-1, old_x1, old_y0=-1, old_y1;
 		if (x0 != old_x0 || x1 != old_x1) {
 			writecommand_cont(ILI9341_CASET); // Column addr set
 			writedata16_cont(x0);   // XSTART

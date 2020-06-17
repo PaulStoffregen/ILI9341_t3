@@ -926,7 +926,9 @@ void ILI9341_t3::drawCircleHelper( int16_t x0, int16_t y0,
   int16_t ddF_y = -2 * r;
   int16_t x     = 0;
   int16_t y     = r;
+  int xold;
 
+  xold = x;
   while (x<y) {
     if (f >= 0) {
       y--;
@@ -936,22 +938,25 @@ void ILI9341_t3::drawCircleHelper( int16_t x0, int16_t y0,
     x++;
     ddF_x += 2;
     f     += ddF_x;
-    if (cornername & 0x4) {
-      drawPixel(x0 + x, y0 + y, color);
-      drawPixel(x0 + y, y0 + x, color);
-    }
-    if (cornername & 0x2) {
-      drawPixel(x0 + x, y0 - y, color);
-      drawPixel(x0 + y, y0 - x, color);
-    }
-    if (cornername & 0x8) {
-      drawPixel(x0 - y, y0 + x, color);
-      drawPixel(x0 - x, y0 + y, color);
-    }
-    if (cornername & 0x1) {
-      drawPixel(x0 - y, y0 - x, color);
-      drawPixel(x0 - x, y0 - y, color);
-    }
+    if (f >= 0 || x == y) { // time to draw the new line segment
+        if (cornername & 0x4) {
+            drawFastHLine(x0 + xold+1, y0 + y, x-xold, color);
+            drawFastVLine(x0 + y, y0 + xold+1, x-xold, color);
+        }
+        if (cornername & 0x2) {
+            drawFastHLine(x0 + xold+1, y0 - y, x-xold, color);
+            drawFastVLine(x0 + y, y0 - x, x-xold, color);
+        }
+        if (cornername & 0x8) {
+            drawFastVLine(x0 - y, y0 + xold+1, x-xold, color);
+            drawFastHLine(x0 - x, y0 + y, x-xold, color); 
+        }
+        if (cornername & 0x1) {
+            drawFastVLine(x0 - y, y0 - x, x-xold, color);
+            drawFastHLine(x0 - x, y0 - y, x-xold, color);
+        }
+        xold = x;
+     } // draw new line segment
   }
 }
 
@@ -1309,30 +1314,30 @@ void ILI9341_t3::drawChar(int16_t x, int16_t y, unsigned char c,
 	}
 }
 
-static uint32_t fetchbit(const uint8_t *p, uint32_t index)
+static inline uint32_t fetchbit(const uint8_t *p, uint32_t index)
 {
-	if (p[index >> 3] & (1 << (7 - (index & 7)))) return 1;
-	return 0;
+	return (p[index >> 3] & (0x80 >> (index & 7)));
 }
 
 static uint32_t fetchbits_unsigned(const uint8_t *p, uint32_t index, uint32_t required)
 {
-	uint32_t val = 0;
-	do {
-		uint8_t b = p[index >> 3];
-		uint32_t avail = 8 - (index & 7);
-		if (avail <= required) {
-			val <<= avail;
-			val |= b & ((1 << avail) - 1);
-			index += avail;
-			required -= avail;
-		} else {
-			b >>= avail - required;
-			val <<= required;
-			val |= b & ((1 << required) - 1);
-			break;
-		}
-	} while (required);
+uint32_t val;
+uint8_t *s = (uint8_t *)&p[index>>3];
+
+#ifdef UNALIGNED_IS_SAFE
+	val = *(uint32_t *)s; // read 4 bytes - unaligned is ok
+	val = __builtin_bswap32(val); // change to big-endian order
+#else
+	val = s[0] << 24;
+	val |= (s[1] << 16);
+	val |= (s[2] << 8);
+	val |= s[3];
+#endif
+	val <<= (index & 7); // shift out used bits
+	if (32 - (index & 7) < required) { // need to get more bits
+		val |= (s[4] >> (8 - (index & 7))); 
+        }
+	val >>= (32-required); // right align the bits
 	return val;
 }
 
@@ -1597,74 +1602,34 @@ int16_t ILI9341_t3::strPixelLen(char * str)
 
 void ILI9341_t3::drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat)
 {
-#if 0			
-	// TODO: replace this *slow* code with something fast...
-	//Serial.printf("      %d bits at %d,%d: %X\n", numbits, x, y, bits);
-	if (bits == 0) return;
-	do {
-		uint32_t x1 = x;
-		uint32_t n = numbits;
-		do {
-			n--;
-			if (bits & (1 << n)) {
-				drawPixel(x1, y, textcolor);
-				//Serial.printf("        pixel at %d,%d\n", x1, y);
-			}
-			x1++;
-		} while (n > 0);
-		y++;
-		repeat--;
-	} while (repeat);
-#endif
-#if 1
 	if (bits == 0) return;
 	beginSPITransaction(_clock);
-	int w = 0;
+	uint32_t w;
+	bits <<= (32-numbits); // left align bits	
 	do {
-		uint32_t x1 = x;
-		uint32_t n = numbits;		
-		
-		writecommand_cont(ILI9341_PASET); // Row addr set
-		writedata16_cont(y);   // YSTART
-		writedata16_cont(y);   // YEND	
-		
-		do {
-			n--;
-			if (bits & (1 << n)) {
-				w++;
-			}
-			else if (w > 0) {
-				// "drawFastHLine(x1 - w, y, w, textcolor)"
-				writecommand_cont(ILI9341_CASET); // Column addr set
-				writedata16_cont(x1 - w);   // XSTART
-				writedata16_cont(x1);   // XEND					
-				writecommand_cont(ILI9341_RAMWR);
-				while (w-- > 1) { // draw line
-					writedata16_cont(textcolor);
-				}
-				writedata16_last(textcolor);
-			}
-						
-			x1++;
-		} while (n > 0);
-
+		w = __builtin_clz(bits); // skip over zeros
+		if (w > numbits) w = numbits;
+		numbits -= w;
+		x += w;
+		bits <<= w;
+		bits = ~bits; // invert to count 1s as 0s
+		w = __builtin_clz(bits);
+		if (w > numbits) w = numbits; 
+		numbits -= w;
+		bits <<= w;
+		bits = ~bits; // invert back to original polarity
 		if (w > 0) {
-				// "drawFastHLine(x1 - w, y, w, textcolor)"
-				writecommand_cont(ILI9341_CASET); // Column addr set
-				writedata16_cont(x1 - w);   // XSTART
-				writedata16_cont(x1);   // XEND
-				writecommand_cont(ILI9341_RAMWR);				
-				while (w-- > 1) { //draw line
-					writedata16_cont(textcolor);
-				}
-				writedata16_last(textcolor);
+			x += w;
+			setAddr(x-w, y, x-1, y+repeat-1); // write a block of pixels w x repeat sized
+			writecommand_cont(ILI9341_RAMWR); // write to RAM
+			w *= repeat;
+			while (w-- > 1) { // draw line
+				writedata16_cont(textcolor);
+			}
+			writedata16_last(textcolor);
 		}
-		
-		y++;
-		repeat--;
-	} while (repeat);
+	} while (numbits > 0);
 	endSPITransaction();
-#endif	
 }
 
 void ILI9341_t3::setCursor(int16_t x, int16_t y) {

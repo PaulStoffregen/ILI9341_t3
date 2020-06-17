@@ -16,6 +16,7 @@
 
 #include "SPI.h"
 #include "ILI9341_t3.h"
+#include "font_Arial.h"
 
 // For the Adafruit shield, these are the default.
 #define TFT_DC  9
@@ -26,6 +27,10 @@ ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
 void setup() {
   tft.begin();
+// Note: you can now set the SPI speed to any value
+// the default value is 30Mhz, but most ILI9341 displays
+// can handle at least 60Mhz and as much as 100Mhz
+//  tft.setClock(60000000);
   tft.fillScreen(ILI9341_BLACK);
   tft.setTextColor(ILI9341_YELLOW);
   tft.setTextSize(2);
@@ -55,6 +60,10 @@ void setup() {
 
   Serial.print(F("Text                     "));
   Serial.println(testText());
+  delay(600);
+
+  Serial.print(F("Proportional Text        "));
+  Serial.println(testProportionalText());
   delay(600);
 
   Serial.print(F("Lines                    "));
@@ -143,6 +152,34 @@ unsigned long testText() {
   tft.println("in the gobberwarts");
   tft.println("with my blurglecruncheon,");
   tft.println("see if I don't!");
+  return micros() - start;
+}
+
+unsigned long testProportionalText() {
+  tft.fillScreen(ILI9341_BLACK);
+  unsigned long start = micros();
+  tft.setCursor(0, 0);
+  tft.setTextColor(ILI9341_WHITE);  tft.setFont(Arial_10);
+  tft.println("Hello World!");
+  tft.setTextColor(ILI9341_YELLOW); tft.setFont(Arial_16);
+  tft.println(1234.56);
+  tft.setTextColor(ILI9341_RED);    tft.setFont(Arial_24);
+  tft.println(0xDEADBEEF, HEX);
+  tft.println();
+  tft.setTextColor(ILI9341_GREEN);
+  tft.setFont(Arial_40);
+  tft.println("Groop");
+  tft.setFont(Arial_16);
+  tft.println("I implore thee,");
+  tft.setFont(Arial_10);
+  tft.println("my foonting turlingdromes.");
+  tft.println("And hooptiously drangle me");
+  tft.println("with crinkly bindlewurdles,");
+  tft.println("Or I will rend thee");
+  tft.println("in the gobberwarts");
+  tft.println("with my blurglecruncheon,");
+  tft.println("see if I don't!");
+  tft.setFontAdafruit();
   return micros() - start;
 }
 

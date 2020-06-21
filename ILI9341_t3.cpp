@@ -469,9 +469,9 @@ uint16_t ILI9341_t3::readScanLine()
 #elif defined(__IMXRT1062__)
 	uint16_t line=0;
 
-	digitalWriteFast(2, HIGH); // oscilloscope trigger for testing
-	delayMicroseconds(10);
-	digitalWriteFast(2, LOW);
+	//digitalWriteFast(2, HIGH); // oscilloscope trigger for testing
+	//delayMicroseconds(10);
+	//digitalWriteFast(2, LOW);
 	beginSPITransaction(ILI9341_SPICLOCK_READ);
 	if (_dcport) {
 		// DC pin is controlled by GPIO

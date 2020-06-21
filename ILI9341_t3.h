@@ -174,7 +174,7 @@ typedef struct {
 // At all other speeds, ILI9241_KINETISK__pspi->beginTransaction() will use the fastest available clock
 #include <SPI.h>
 #define ILI9341_SPICLOCK 30000000
-#define ILI9341_SPICLOCK_READ 2000000
+#define ILI9341_SPICLOCK_READ 6500000
 
 class ILI9341_t3 : public Print
 {

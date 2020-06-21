@@ -402,40 +402,51 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
     }
     endSPITransaction();
     return r;  // get the received byte... should check for it first...
-#elif defined(__IMXRT1052__) || defined(__IMXRT1062__)  // Teensy 4.x 
-    uint16_t wTimeout = 0xffff;
-    uint8_t r=0;
 
-    beginSPITransaction(ILI9341_SPICLOCK_READ);
-    // Lets assume that queues are empty as we just started transaction.
-	IMXRT_LPSPI4_S.CR = LPSPI_CR_MEN | LPSPI_CR_RRF | LPSPI_CR_RTF;   // actually clear both...
-    //writecommand(0xD9); // sekret command
-    maybeUpdateTCR(_tcr_dc_assert | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
-	IMXRT_LPSPI4_S.TDR = 0xD9;
 
-    // writedata(0x10 + index);
-	maybeUpdateTCR(_tcr_dc_not_assert | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
-	IMXRT_LPSPI4_S.TDR = 0x10 + index;
+#elif defined(__IMXRT1062__)  // Teensy 4.x
+	uint8_t r=0;
 
-    // writecommand(c);
-    maybeUpdateTCR(_tcr_dc_assert | LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_CONT);
-	IMXRT_LPSPI4_S.TDR = c;
+	//digitalWriteFast(2, HIGH); // oscilloscope trigger for testing
+	//delayMicroseconds(10);
+	//digitalWriteFast(2, LOW);
 
-    // readdata
-	maybeUpdateTCR(_tcr_dc_not_assert | LPSPI_TCR_FRAMESZ(7));
-	IMXRT_LPSPI4_S.TDR = 0;
+	beginSPITransaction(ILI9341_SPICLOCK_READ);
 
-    // Now wait until completed.
-    wTimeout = 0xffff;
-    uint8_t rx_count = 4;
-    while (rx_count && wTimeout) {
-        if ((IMXRT_LPSPI4_S.RSR & LPSPI_RSR_RXEMPTY) == 0)  {
-            r =IMXRT_LPSPI4_S.RDR;  // Read any pending RX bytes in
-            rx_count--; //decrement count of bytes still levt
-        }
-    }
-    endSPITransaction();
-    return r;  // get the received byte... should check for it first...
+	if (_dcport) {
+		// DC pin is controlled by GPIO
+		DIRECT_WRITE_LOW(_dcport, _dcpinmask);
+		IMXRT_LPSPI4_S.SR = LPSPI_SR_TCF | LPSPI_SR_FCF | LPSPI_SR_WCF;
+		IMXRT_LPSPI4_S.TCR = LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_RXMSK | LPSPI_TCR_CONT;
+		IMXRT_LPSPI4_S.TDR = 0xD9;
+		while (!(IMXRT_LPSPI4_S.SR & LPSPI_SR_WCF)) ; // wait until word complete
+
+		DIRECT_WRITE_HIGH(_dcport, _dcpinmask);
+		IMXRT_LPSPI4_S.SR = LPSPI_SR_TCF | LPSPI_SR_FCF | LPSPI_SR_WCF;
+		IMXRT_LPSPI4_S.TDR = 0x10 + index;
+		while (!(IMXRT_LPSPI4_S.SR & LPSPI_SR_WCF)) ; // wait until word complete
+
+		DIRECT_WRITE_LOW(_dcport, _dcpinmask);
+		IMXRT_LPSPI4_S.SR = LPSPI_SR_TCF | LPSPI_SR_FCF | LPSPI_SR_WCF;
+		IMXRT_LPSPI4_S.TDR = c;
+		while (!(IMXRT_LPSPI4_S.SR & LPSPI_SR_WCF)) ; // wait until word complete
+
+		DIRECT_WRITE_HIGH(_dcport, _dcpinmask);
+		IMXRT_LPSPI4_S.SR = LPSPI_SR_TCF | LPSPI_SR_FCF | LPSPI_SR_WCF;
+		IMXRT_LPSPI4_S.TCR = LPSPI_TCR_FRAMESZ(7);
+		IMXRT_LPSPI4_S.TDR = 0x10 + index;
+		while (!(IMXRT_LPSPI4_S.SR & LPSPI_SR_WCF)) ; // wait until word complete
+		while (((IMXRT_LPSPI4_S.FSR >> 16) & 0x1F) == 0) ; // wait until rx fifo not empty
+		r = IMXRT_LPSPI4_S.RDR;
+	} else {
+		// DC pin is controlled by SPI CS hardware
+
+
+
+	}
+	endSPITransaction();
+	return r;  // get the received byte... should check for it first...
+
 #else
 	beginSPITransaction(_clock);
 	writecommand_cont(0xD9);

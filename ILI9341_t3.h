@@ -228,6 +228,7 @@ class ILI9341_t3 : public Print
 	
 	//uint8_t readdata(void);
 	uint8_t readcommand8(uint8_t reg, uint8_t index = 0);
+	uint16_t readScanLine();
 
 	// Added functions to read pixel data...
 	uint16_t readPixel(int16_t x, int16_t y);

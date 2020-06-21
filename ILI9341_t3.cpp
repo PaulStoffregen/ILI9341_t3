@@ -461,6 +461,45 @@ uint8_t ILI9341_t3::readcommand8(uint8_t c, uint8_t index)
 #endif   
 }
 
+uint16_t ILI9341_t3::readScanLine()
+{
+#ifdef KINETISK
+	return 0; // TODO...
+
+#elif defined(__IMXRT1062__)
+	uint16_t line=0;
+
+	digitalWriteFast(2, HIGH); // oscilloscope trigger for testing
+	delayMicroseconds(10);
+	digitalWriteFast(2, LOW);
+	beginSPITransaction(ILI9341_SPICLOCK_READ);
+	if (_dcport) {
+		// DC pin is controlled by GPIO
+		DIRECT_WRITE_LOW(_dcport, _dcpinmask);
+		IMXRT_LPSPI4_S.SR = LPSPI_SR_TCF | LPSPI_SR_FCF | LPSPI_SR_WCF;
+		IMXRT_LPSPI4_S.TCR = LPSPI_TCR_FRAMESZ(7) | LPSPI_TCR_RXMSK | LPSPI_TCR_CONT;
+		IMXRT_LPSPI4_S.TDR = 0x45;
+		while (!(IMXRT_LPSPI4_S.SR & LPSPI_SR_WCF)) ; // wait until word complete
+		DIRECT_WRITE_HIGH(_dcport, _dcpinmask);
+		IMXRT_LPSPI4_S.TDR = 0;
+		IMXRT_LPSPI4_S.TCR = LPSPI_TCR_FRAMESZ(15);
+		IMXRT_LPSPI4_S.TDR = 0;
+		while (!(IMXRT_LPSPI4_S.SR & LPSPI_SR_WCF)) ; // wait until word complete
+		while (((IMXRT_LPSPI4_S.FSR >> 16) & 0x1F) == 0) ; // wait until rx fifo not empty
+		line = IMXRT_LPSPI4_S.RDR >> 7;
+		//if (IMXRT_LPSPI4_S.FSR != 0) Serial.println("ERROR: junk remains in FIFO!!!");
+	} else {
+		// DC pin is controlled by SPI CS hardware
+		// TODO...
+	}
+	endSPITransaction();
+	return line;
+#else
+	return 0;
+#endif
+}
+
+
 
 // Read Pixel at x,y and get back 16-bit packed color
 uint16_t ILI9341_t3::readPixel(int16_t x, int16_t y)

@@ -50,6 +50,10 @@
 
 #include "ILI9341_t3.h"
 #include <SPI.h>
+#ifndef swap
+#define swap(a, b) { typeof(a) t = a; a = b; b = t; }
+#endif
+
 
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock

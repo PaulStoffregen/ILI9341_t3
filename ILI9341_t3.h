@@ -553,10 +553,6 @@ class ILI9341_t3 : public Print
 	void drawFontBits(uint32_t bits, uint32_t numbits, uint32_t x, uint32_t y, uint32_t repeat);
 };
 
-#ifndef swap
-#define swap(a, b) { typeof(a) t = a; a = b; b = t; }
-#endif
-
 // To avoid conflict when also using Adafruit_GFX or any Adafruit library
 // which depends on Adafruit_GFX, #include the Adafruit library *BEFORE*
 // you #include ILI9341_t3.h.

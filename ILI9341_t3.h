@@ -201,7 +201,7 @@ class ILI9341_t3 : public Print
     bool getPortrait()              { return !getLandscape(); }
     void setBGR(bool b=true);
     void setRGB(bool r=true)        { setBGR(!r); }
-    bool getBGR()                   { return madctl_bgr; }
+    bool getBGR();
     bool getRGB()                   { return !madctl_bgr; }
 
 	void setRotation(uint8_t r);

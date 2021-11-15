@@ -307,6 +307,10 @@ void ILI9341_t3::setBGR(bool b) {
     madctl_bgr = b ? MADCTL_BGR : MADCTL_RGB;
 }
 
+bool ILI9341_t3::getBGR() {
+    return madctl_bgr == MADCTL_BGR;
+}
+
 void ILI9341_t3::setLandscape(bool l) {
     if (l != getLandscape()) {
         int16_t tmp = native_width;

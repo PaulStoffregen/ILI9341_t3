@@ -176,9 +176,9 @@ typedef struct {
 #define ILI9341_SPICLOCK 30000000
 #define ILI9341_SPICLOCK_READ 6500000
 
-#ifndef swap
-#define swap(a, b) { typeof(a) t = a; a = b; b = t; }
-#endif
+//#ifndef swap
+//#define swap(a, b) { typeof(a) t = a; a = b; b = t; }
+//#endif
 
 class ILI9341_t3 : public Print
 {

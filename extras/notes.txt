@@ -1,9 +1,15 @@
-otf2bdf - converts truetype to BDF font format
+otf2bdf - converts truetype to BDF font format (which you can then
+use as input for the ttf_to_ili9341.pl Perl script)
 
-https://www.math.nmsu.edu/~mleisher/Software/otf2bdf/
+https://github.com/jirutka/otf2bdf
 
 sudo apt-get install otf2bdf
 
+
+The Perl script uses a bdf_to_ili9341 utility to do its heavy lifting.  To
+build bdf_to_ili9341 from the bdf_to_ili9341.c source, run this command:
+
+gcc -O2 -Wall -o bdf_to_ili9341 bdf_to_ili9341.c
 
 
 

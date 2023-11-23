@@ -90,6 +90,7 @@
 #define ILI9341_RAMRD   0x2E
 
 #define ILI9341_PTLAR    0x30
+#define ILI9341_VSCRDEF  0x33
 #define ILI9341_MADCTL   0x36
 #define ILI9341_VSCRSADD 0x37
 #define ILI9341_PIXFMT   0x3A
@@ -197,6 +198,7 @@ class ILI9341_t3 : public Print
 
 	void setRotation(uint8_t r);
 	void setScroll(uint16_t offset);
+	void setScrollingDefinition(uint16_t tfa, uint16_t vsa, uint16_t bfa);
 	void invertDisplay(boolean i);
 	void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 	// Pass 8-bit (each) R,G,B, get back 16-bit packed color

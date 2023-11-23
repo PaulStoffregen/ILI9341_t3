@@ -311,6 +311,16 @@ void ILI9341_t3::setScroll(uint16_t offset)
 	endSPITransaction();
 }
 
+void ILI9341_t3::setScrollingDefinition(uint16_t tfa, uint16_t vsa, uint16_t bfa)
+{
+  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+  writecommand_cont(ILI9341_VSCRDEF);
+  writedata16_cont(tfa);
+  writedata16_cont(vsa);
+  writedata16_last(bfa);
+  SPI.endTransaction();
+}
+
 void ILI9341_t3::invertDisplay(boolean i)
 {
 	beginSPITransaction(_clock);

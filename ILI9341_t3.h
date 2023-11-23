@@ -268,6 +268,7 @@ class ILI9341_t3 : public Print
 	void drawRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
 	void fillRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
 	void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color);
+	void drawTransparentPicRotated(int x, int y, int w, int h, const uint16_t* pic, const uint16_t backColor, int centerX, int centerY, int rotAngle);
 	void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
 	void setCursor(int16_t x, int16_t y);
     void getCursor(int16_t *x, int16_t *y);

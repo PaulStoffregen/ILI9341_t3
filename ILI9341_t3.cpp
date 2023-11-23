@@ -1281,6 +1281,49 @@ void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
   }
 }
 
+void ILI9341_t3::drawTransparentPicRotated(int x, int y, int w, int h, 
+					   const uint16_t* pic, const uint16_t backColor, 
+					   int centerX, int centerY, int rotAngle) {
+  int cc = 0; //line-counter
+  int _w = w; //calculated width
+  int actualX, actualY;
+  float rotX, rotY;
+
+  double _rotAngle = (double)-rotAngle * 0.01745329222; //calculate degrees of rotAngle
+  
+  //process every single pixel
+  for (int c = 0; c < w * h; c++) {
+    
+    //calc y position
+    if (c == _w) { //line fully processed
+      _w = _w + w; //setup _w for next line
+      cc++; //count up y position / line count
+    }
+    
+    //get pivot points
+    actualX = c - _w + w - centerX; //get pivot point for x
+    actualY = cc - centerY; //get pivot point for y
+
+    //calculate rotated position
+    rotX = actualX * cos(_rotAngle) + actualY * sin(_rotAngle);
+    rotY = -actualX * sin(_rotAngle) + actualY * cos(_rotAngle);
+
+    //draw pixels
+    if (pic[c] != backColor) { //avoid drawing the background
+      //avoid pixel noise caused by typecast double to int
+      int tX = rotX, tY = rotY;
+      float deltaX = rotX - (float)tX, deltaY = rotY - (float)tY;
+      if (deltaX >= 0.5) drawPixel(rotX+x+1, rotY+y, pic[c]);
+      if (deltaY >= 0.5) drawPixel(rotX+x, rotY+y+1, pic[c]);
+      if (deltaX <= -0.5) drawPixel(rotX+x-1, rotY+y, pic[c]);
+      if (deltaY <= -0.5) drawPixel(rotX+x, rotY+y-1, pic[c]);
+
+      //draw normal single pixel on calculated position
+      drawPixel(rotX + x, rotY + y, pic[c]);
+    }
+  }
+}
+
 size_t ILI9341_t3::write(uint8_t c)
 {
 	if (font) {

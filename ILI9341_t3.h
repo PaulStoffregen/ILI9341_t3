@@ -286,6 +286,7 @@ class ILI9341_t3 : public Print
 	int16_t getCursorX(void) const { return cursor_x; }
 	int16_t getCursorY(void) const { return cursor_y; }
 	void setFont(const ILI9341_t3_font_t &f) { font = &f; }
+	const ILI9341_t3_font_t* getFont() {return font;} 
 	void setFontAdafruit(void) { font = NULL; }
 	void drawFontChar(unsigned int c);
 	void measureChar(uint8_t c, uint16_t* w, uint16_t* h);

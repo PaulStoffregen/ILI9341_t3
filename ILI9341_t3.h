@@ -176,6 +176,10 @@ typedef struct {
 #define ILI9341_SPICLOCK 30000000
 #define ILI9341_SPICLOCK_READ 6500000
 
+//#ifndef swap
+//#define swap(a, b) { typeof(a) t = a; a = b; b = t; }
+//#endif
+
 class ILI9341_t3 : public Print
 {
   public:
@@ -194,6 +198,15 @@ class ILI9341_t3 : public Print
 	void fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
 	void fillScreenVGradient(uint16_t color1, uint16_t color2);
 	void fillScreenHGradient(uint16_t color1, uint16_t color2);
+
+    void setLandscape(bool l=true);
+    void setPortrait(bool p=true)   { setLandscape(!p); }
+    bool getLandscape()             { return native_width > native_height; }
+    bool getPortrait()              { return !getLandscape(); }
+    void setBGR(bool b=true);
+    void setRGB(bool r=true)        { setBGR(!r); }
+    bool getBGR();
+    bool getRGB()                   { return !madctl_bgr; }
 
 	void setRotation(uint8_t r);
 	void setScroll(uint16_t offset);
@@ -299,6 +312,7 @@ class ILI9341_t3 : public Print
  protected:
         unsigned long _clock = ILI9341_SPICLOCK;
 	int16_t _width, _height; // Display w/h as modified by current rotation
+    int16_t native_width, native_height;
 	int16_t  cursor_x, cursor_y;
 	uint16_t textcolor, textbgcolor;
 	uint8_t textsize, rotation;
@@ -309,6 +323,8 @@ class ILI9341_t3 : public Print
   	uint8_t _cs, _dc;
 	uint8_t pcs_data, pcs_command;
 	uint8_t _miso, _mosi, _sclk;
+    uint8_t madctl_bgr;
+
 	// add support to allow only one hardware CS (used for dc)
 #if defined(__IMXRT1052__) || defined(__IMXRT1062__)  // Teensy 4.x
     uint32_t _cspinmask;

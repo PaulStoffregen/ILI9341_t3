@@ -58,9 +58,6 @@
 // Teensy 3.1 can only generate 30 MHz SPI when running at 120 MHz (overclock)
 // At all other speeds, SPI.beginTransaction() will use the fastest available clock
 
-#define WIDTH  ILI9341_TFTWIDTH
-#define HEIGHT ILI9341_TFTHEIGHT
-
 // Constructor when using hardware SPI.  Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
 ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_t sclk, uint8_t miso)
@@ -71,8 +68,10 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	_mosi = mosi;
 	_sclk = sclk;
 	_miso = miso;
-	_width    = WIDTH;
-	_height   = HEIGHT;
+    native_width = ILI9341_TFTWIDTH;
+    native_height = ILI9341_TFTHEIGHT;
+	_width    = native_width;
+	_height   = native_height;
 	rotation  = 0;
 	cursor_y  = cursor_x    = 0;
 	textsize  = 1;
@@ -82,6 +81,7 @@ ILI9341_t3::ILI9341_t3(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_
 	// Added to see how much impact actually using non hardware CS pin might be
     _cspinmask = 0;
     _csport = NULL;
+    setBGR();
 }
 
 void ILI9341_t3::setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
@@ -278,29 +278,45 @@ void ILI9341_t3::setRotation(uint8_t m)
 	writecommand_cont(ILI9341_MADCTL);
 	switch (rotation) {
 	case 0:
-		writedata8_last(MADCTL_MX | MADCTL_BGR);
-		_width  = ILI9341_TFTWIDTH;
-		_height = ILI9341_TFTHEIGHT;
+		writedata8_last(MADCTL_MX | madctl_bgr);
+		_width  = native_width;
+		_height = native_height;
 		break;
 	case 1:
-		writedata8_last(MADCTL_MV | MADCTL_BGR);
-		_width  = ILI9341_TFTHEIGHT;
-		_height = ILI9341_TFTWIDTH;
+		writedata8_last(MADCTL_MV | madctl_bgr);
+		_width  = native_height;
+		_height = native_width;
 		break;
 	case 2:
-		writedata8_last(MADCTL_MY | MADCTL_BGR);
-		_width  = ILI9341_TFTWIDTH;
-		_height = ILI9341_TFTHEIGHT;
+		writedata8_last(MADCTL_MY | madctl_bgr);
+		_width  = native_width;
+		_height = native_height;
 		break;
 	case 3:
-		writedata8_last(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
-		_width  = ILI9341_TFTHEIGHT;
-		_height = ILI9341_TFTWIDTH;
+		writedata8_last(MADCTL_MX | MADCTL_MY | MADCTL_MV | madctl_bgr);
+		_width  = native_height;
+		_height = native_width;
 		break;
 	}
 	endSPITransaction();
 	cursor_x = 0;
 	cursor_y = 0;
+}
+
+void ILI9341_t3::setBGR(bool b) {
+    madctl_bgr = b ? MADCTL_BGR : MADCTL_RGB;
+}
+
+bool ILI9341_t3::getBGR() {
+    return madctl_bgr == MADCTL_BGR;
+}
+
+void ILI9341_t3::setLandscape(bool l) {
+    if (l != getLandscape()) {
+        int16_t tmp = native_width;
+        native_width = native_height;
+        native_height = tmp;
+    }
 }
 
 void ILI9341_t3::setScroll(uint16_t offset)
